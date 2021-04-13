@@ -1,0 +1,24 @@
+[Unit]
+Description=yapi
+ConditionPathExists=/opt/yapi/yapi
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+WorkingDirectory=/opt/yapi
+ExecStart=/opt/yapi/yapi
+StandardError=append:/var/log/ohyandex/app.log
+
+Restart=on-failure
+RestartSec=10
+
+ExecStartPre=/bin/mkdir -p /var/log/yapi
+ExecStartPre=/bin/chown syslog:adm /var/log/yapi
+ExecStartPre=/bin/touch /var/log/yapi/app.log
+ExecStartPre=/bin/chmod 775 /opt/yapi/yapi
+
+[Install]
+WantedBy=multi-user.target
