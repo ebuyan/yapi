@@ -14,7 +14,7 @@ STATION_ADDR - ipadress станции
 
 `cd /opt` \
 `git clone https://github.com/ebuyan/yapi.git` \
-`cp .env bin/.env.local` \
+`cp .env .env.local` \
 `cp yapi.service /etc/systemd/systemd` \
 `systemctl daemon-reload` \
 `systemctl start yapi.service` \
@@ -22,7 +22,7 @@ STATION_ADDR - ipadress станции
 
 <h3>API</h3>
 
-- Статус `GET <host>/`
+- Статус `GET localhost:8001/`
 - Перемотка `POST {
     "command": "rewind",
     "position" : 120
