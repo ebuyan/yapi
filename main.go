@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"yapi/glagol"
 	"yapi/server"
 	"yapi/socket"
@@ -12,18 +13,27 @@ import (
 func main() {
 	err := godotenv.Load(".env.local")
 	if err != nil {
-		panic("No .env.local file")
+		log.Fatalln("No .env.local file")
 	}
 
 	oauthClient := yandex.NewOAuthClient()
-	oauthToken := oauthClient.GetToken()
+	oauthToken, err := oauthClient.GetToken()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	api := glagol.NewAPIClient(oauthToken)
-	station := api.GetLocalStation()
+	client := glagol.NewGlagolClient(oauthToken)
+	station, err := client.GetDevice()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	conversation := socket.NewConversation(station)
-	go conversation.Run()
+	socket := socket.NewSocket(&station)
+	err = socket.Run()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	server := server.NewHttp(&conversation)
+	server := server.NewHttp(&socket)
 	server.Start()
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"yapi/socket"
@@ -13,17 +14,18 @@ type Http struct {
 	Handler
 }
 
-func NewHttp(conversation *socket.Conversation) Http {
+func NewHttp(s *socket.Socket) Http {
 	return Http{
 		Host:    os.Getenv("HTTP_HOST"),
-		Handler: NewHandler(conversation),
+		Handler: NewHandler(s),
 	}
 }
 
-func (Http *Http) Start() {
+func (h *Http) Start() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", Http.Handler.SendCommand).Methods("POST")
-	r.HandleFunc("/", Http.Handler.GetLastState).Methods("GET")
+	r.HandleFunc("/", h.Handler.SetState).Methods("POST")
+	r.HandleFunc("/", h.Handler.GetState).Methods("GET")
 	http.Handle("/", r)
-	http.ListenAndServe(Http.Host, nil)
+	log.Fatalln(http.ListenAndServe(h.Host, nil))
+	log.Println("Start server on " + h.Host)
 }

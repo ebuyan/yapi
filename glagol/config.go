@@ -1,19 +1,30 @@
 package glagol
 
 import (
+	"net/http"
+	"net/url"
 	"os"
 )
 
-type StationConfig struct {
-	StationPort string
-	StationAddr string
-	StationId   string
+type DeviceConfig struct {
+	Port   string
+	IpAddr string
+	Id     string
 }
 
-func NewStationConfig() StationConfig {
-	return StationConfig{
-		StationPort: os.Getenv("STATION_PORT"),
-		StationAddr: os.Getenv("STATION_ADDR"),
-		StationId:   os.Getenv("STATION_ID"),
+func NewDeviceConfig() DeviceConfig {
+	return DeviceConfig{
+		Port:   os.Getenv("STATION_PORT"),
+		IpAddr: os.Getenv("STATION_ADDR"),
+		Id:     os.Getenv("STATION_ID"),
 	}
+}
+
+func (d DeviceConfig) GetHost() string {
+	host := url.URL{Scheme: "wss", Host: d.IpAddr + ":" + d.Port, Path: "/"}
+	return host.String()
+}
+
+func (d DeviceConfig) GetHeaderOrigin() http.Header {
+	return http.Header{"Origin": {"http://yandex.ru/"}}
 }

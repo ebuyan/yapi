@@ -6,16 +6,17 @@ import (
 	"errors"
 )
 
-func GetCerts(certificate string) (*x509.CertPool, error) {
-	certs := x509.NewCertPool()
+func GetCerts(certificate string) (certs *x509.CertPool, err error) {
+	certs = x509.NewCertPool()
 	block, _ := pem.Decode([]byte(certificate))
 	if block == nil {
-		return nil, errors.New("failed to parse certificate PEM")
+		err = errors.New("failed to parse certificate PEM")
+		return
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, errors.New("failed to parse certificate: " + err.Error())
+		return
 	}
 	certs.AddCert(cert)
-	return certs, nil
+	return
 }

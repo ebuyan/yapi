@@ -1,47 +1,46 @@
 package glagol
 
-type DeviceList []*Device
+type DeviceList []Device
 
 type Device struct {
-	ActivationCode     int64                `json:"activation_code"`
-	ActivationRegion   string               `json:"activation_region"`
-	Config             DeviceConfig         `json:"config"`
-	Id                 string               `json:"id"`
-	Name               string               `json:"name"`
-	Platform           string               `json:"platform"`
-	PromocodeActivated bool                 `json:"promocode_activated"`
-	Glagol             DeviceGlagolSettings `json:"glagol"`
-	Tags               []string             `json:"tags"`
+	Id       string       `json:"id"`
+	Platform string       `json:"platform"`
+	Glagol   DeviceGlagol `json:"glagol"`
 
-	Discovery DeviceLocalDiscovery `json:"-"`
-	Token     string               `json:"-"`
-	LastState interface{}          `json:"-"`
+	Config DeviceConfig `json:"-"`
+	Token  string       `json:"-"`
+	State  DeviceState  `json:"-"`
 }
 
-type DeviceConfig struct {
-	Name              string                        `json:"name"`
-	ScreenSaverConfig DeviceConfigScreenSaverConfig `json:"screen_saver_config"`
+type DeviceGlagol struct {
+	Security DeviceGlagolSecurity `json:"security"`
 }
 
-type DeviceConfigScreenSaverConfig struct {
-	Type string `json:"type"`
-}
-
-type DeviceGlagolSettings struct {
-	Security DeviceGlagolSettingsSecurity `json:"security"`
-}
-
-type DeviceGlagolSettingsSecurity struct {
+type DeviceGlagolSecurity struct {
 	ServerCertificate string `json:"server_certificate"`
 	ServerPrivateKey  string `json:"server_private_key"`
 }
 
-type DeviceLocalDiscovery struct {
-	Discovered   bool
-	LocalAddress string
-	LocalPort    string
+type DeviceState struct {
+	State State `json:"state"`
 }
 
-func (deviceLocalDiscovery *DeviceLocalDiscovery) GetHost() string {
-	return deviceLocalDiscovery.LocalAddress + ":" + deviceLocalDiscovery.LocalPort
+type State struct {
+	PlayerState PlayerState `json:"playerState"`
+	Playing     bool        `json:"playing"`
+	Volume      float64     `json:"volume"`
+}
+
+type PlayerState struct {
+	Duration float64 `json:"duration"`
+	Extra    Extra   `json:"extra"`
+	HasPause bool    `json:"hasPause"`
+	HasPlay  bool    `json:"hasPlay"`
+	Progress float64 `json:"progress"`
+	Subtitle string  `json:"subtitle"`
+	Title    string  `json:"title"`
+}
+
+type Extra struct {
+	CoverURI string `json:"coverURI"`
 }

@@ -3,8 +3,7 @@ package socket
 import (
 	"crypto/tls"
 	"encoding/json"
-	"net/http"
-	"net/url"
+	"log"
 	"os"
 	"os/signal"
 	"time"
@@ -18,107 +17,114 @@ type Conversation struct {
 	Device     *glagol.Device
 	Connection *websocket.Conn
 	Error      chan string
-	Interrupt  chan os.Signal
+	BrokenPipe chan bool
 	Locked     bool
 }
 
-func NewConversation(device *glagol.Device) Conversation {
-	return Conversation{
-		Device:    device,
-		Error:     make(chan string),
-		Interrupt: make(chan os.Signal, 1),
-		Locked:    false,
+func NewConversation(device *glagol.Device) *Conversation {
+	return &Conversation{
+		Device:     device,
+		Error:      make(chan string),
+		BrokenPipe: make(chan bool),
+		Locked:     false,
 	}
 }
 
-func (conversation *Conversation) Run() {
-	conversation.connect()
-	go conversation.read()
-	conversation.ping()
-	conversation.finish()
-}
-
-func (conversation *Conversation) connect() {
-	host := url.URL{Scheme: "wss", Host: conversation.Device.Discovery.GetHost(), Path: "/"}
+func (c *Conversation) Connect() (err error) {
 	dialer := websocket.DefaultDialer
-
-	certs, err := GetCerts(conversation.Device.Glagol.Security.ServerCertificate)
+	certs, err := GetCerts(c.Device.Glagol.Security.ServerCertificate)
 	if err != nil {
-		panic(err)
+		return
 	}
 	dialer.TLSClientConfig = &tls.Config{
 		RootCAs:            certs,
 		InsecureSkipVerify: true,
 	}
-	dialer.HandshakeTimeout = 0
-	conversation.Connection, _, err = dialer.Dial(host.String(), http.Header{"Origin": {"http://yandex.ru/"}})
+	c.Connection, _, err = dialer.Dial(c.Device.Config.GetHost(), c.Device.Config.GetHeaderOrigin())
 	if err != nil {
-		panic("dial: " + err.Error())
+		return
 	}
+	log.Println("Successful connection to the station")
+	err = c.ping()
+	return
 }
 
-func (conversation *Conversation) read() {
-	for {
-		_, message, err := conversation.Connection.ReadMessage()
-		if err != nil {
-			conversation.Error <- err.Error()
-			return
-		}
-		go conversation.updateState(message)
-	}
-}
+func (c *Conversation) Run() {
+	c.BrokenPipe <- false
+	defer c.Close()
+	go c.read()
 
-func (conversation *Conversation) updateState(msg []byte) {
-	for conversation.Locked {
-	}
-	conversation.Locked = true
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
 
-	latestState := glagol.DeviceResponse{}
-	json.Unmarshal(msg, &latestState)
-	conversation.Device.LastState = latestState
-
-	conversation.Locked = false
-}
-
-func (conversation *Conversation) ping() {
-	err := conversation.SendToStation(map[string]interface{}{"command": "ping"})
-	if err != nil {
-		conversation.Error <- "write: " + err.Error()
-	}
-}
-
-func (conversation *Conversation) finish() {
-	defer conversation.Connection.Close()
-	signal.Notify(conversation.Interrupt, os.Interrupt)
-	for {
+	select {
+	case err := <-c.Error:
+		log.Println(err)
 		select {
-		case err := <-conversation.Error:
-			panic(err)
-		case <-conversation.Interrupt:
-			return
+		case <-time.After(time.Second):
+			c.BrokenPipe <- true
 		}
+	case <-interrupt:
+		log.Fatalln("interrupt")
 	}
 }
 
-func (conversation *Conversation) SendToStation(msg interface{}) error {
+func (c *Conversation) SendToDevice(msg Payload) error {
 	payload := DeviceRequest{
-		ConversationToken: conversation.Device.Token,
+		ConversationToken: c.Device.Token,
 		Id:                uuid.New().String(),
 		SentTime:          time.Now().UnixNano(),
 		Payload:           msg,
 	}
-	return conversation.Connection.WriteJSON(payload)
+	return c.Connection.WriteJSON(payload)
+}
+
+func (c *Conversation) Close() {
+	c.Connection.Close()
+	log.Println("Connection closed")
+}
+
+func (c *Conversation) read() {
+	for {
+		_, message, err := c.Connection.ReadMessage()
+		if err != nil {
+			c.Error <- err.Error()
+			return
+		}
+		go c.updateState(message)
+	}
+}
+
+func (c *Conversation) updateState(msg []byte) {
+	for c.Locked {
+	}
+	c.Locked = true
+
+	latestState := glagol.DeviceState{}
+	json.Unmarshal(msg, &latestState)
+	c.Device.State = latestState
+
+	c.Locked = false
+}
+
+func (c *Conversation) ping() (err error) {
+	err = c.SendToDevice(Payload{Command: "ping"})
+	if err != nil {
+		return
+	}
+	return
 }
 
 type DeviceRequest struct {
-	ConversationToken string      `json:"conversationToken"`
-	Id                string      `json:"id"`
-	SentTime          int64       `json:"sentTime"`
-	Payload           interface{} `json:"payload"`
+	ConversationToken string  `json:"conversationToken"`
+	Id                string  `json:"id"`
+	SentTime          int64   `json:"sentTime"`
+	Payload           Payload `json:"payload"`
 }
 
 type Payload struct {
-	Command string `json:"command"`
-	Volume  string `json:"volume"`
-	Text    string `json:"text"`
+	Command  string `json:"command"`
+	Volume   string `json:"volume"`
+	Position string `json:"position"`
+	Text     string `json:"text"`
 }

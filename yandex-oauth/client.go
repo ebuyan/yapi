@@ -26,12 +26,12 @@ func NewOAuthClient() OAuthClient {
 	}
 }
 
-func (client OAuthClient) GetToken() string {
+func (client OAuthClient) GetToken() (string, error) {
 	ok, token := client.store.getToken()
 	if !ok {
 		resp, err := client.sendRequest()
 		if err != nil {
-			panic(err.Error())
+			return "", err
 		}
 		if len(resp.CapchaKey) > 0 {
 			return client.inputCaptcha(resp.CapchaUrl, resp.CapchaUrl)
@@ -39,38 +39,35 @@ func (client OAuthClient) GetToken() string {
 		token = resp.Token
 		client.store.setToken(token)
 	}
-	return token
+	return token, nil
 }
 
-func (client OAuthClient) sendRequest() (*OAuthTokenResponse, error) {
-	req, err := http.NewRequest(http.MethodPost, client.baseUrl, bytes.NewBuffer(client.body.Get()))
-	if err != nil {
-		return nil, err
-	}
+func (client OAuthClient) sendRequest() (response OAuthTokenResponse, err error) {
+	req, _ := http.NewRequest(http.MethodPost, client.baseUrl, bytes.NewBuffer(client.body.Get()))
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return
 	}
-	response := OAuthTokenResponse{}
+	response = OAuthTokenResponse{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, err
+		return
 	}
 	if len(response.Error) > 0 {
-		return nil, errors.New(response.Error)
+		err = errors.New(response.Error)
+		return
 	}
-	return &response, nil
+	return
 }
 
-func (client OAuthClient) inputCaptcha(captchaUrl string, captchaKey string) string {
+func (client OAuthClient) inputCaptcha(captchaUrl string, captchaKey string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Please follow the link and enter the captcha value. " + captchaUrl)
 	for {
