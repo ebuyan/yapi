@@ -123,8 +123,8 @@ type DeviceRequest struct {
 }
 
 type Payload struct {
-	Command  string `json:"command"`
-	Volume   string `json:"volume"`
-	Position string `json:"position"`
-	Text     string `json:"text"`
+	Command  string  `json:"command"`
+	Volume   float32 `json:"volume"`
+	Position int8    `json:"position"`
+	Text     string  `json:"text"`
 }
