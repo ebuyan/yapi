@@ -8,7 +8,7 @@ import (
 )
 
 type GlagolClient struct {
-	mdns     MDNS
+	mdns     mDNS
 	deviceId string
 	token    string
 	baseUrl  string
@@ -37,7 +37,7 @@ func (g *GlagolClient) GetDevice() (device *Device, err error) {
 		return
 	}
 	device.Token = token
-	err = g.mdns.SetIpAddrPort(device)
+	err = g.mdns.SetConfig(device)
 	if err != nil {
 		return
 	}

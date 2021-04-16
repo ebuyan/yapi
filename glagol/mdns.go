@@ -9,20 +9,19 @@ import (
 	"github.com/hashicorp/mdns"
 )
 
-type MDNS struct {
+type mDNS struct {
 	service string
 }
 
-func NewMDNS() MDNS {
-	return MDNS{"_yandexio._tcp"}
+func NewMDNS() mDNS {
+	return mDNS{"_yandexio._tcp"}
 }
 
-func (m MDNS) SetIpAddrPort(device *Device) (err error) {
+func (m *mDNS) SetConfig(device *Device) (err error) {
 	entriesCh := make(chan *mdns.ServiceEntry)
 	go func() {
 		for entry := range entriesCh {
-			log.Println(entry)
-			if device.Id == m.GetDeviceId(entry) {
+			if device.Id == m.getDeviceId(entry) {
 				device.Config.IpAddr = entry.AddrV4.String()
 				device.Config.Port = strconv.Itoa(entry.Port)
 				log.Println("Found device on: " + device.GetHost())
@@ -36,11 +35,11 @@ func (m MDNS) SetIpAddrPort(device *Device) (err error) {
 	return
 }
 
-func (mdns MDNS) GetDeviceId(entry *mdns.ServiceEntry) (id string) {
+func (mdns *mDNS) getDeviceId(entry *mdns.ServiceEntry) (deviceId string) {
 	for _, field := range entry.InfoFields {
 		entryData := strings.Split(field, "=")
 		if len(entryData) == 2 && entryData[0] == "deviceId" {
-			id = entryData[1]
+			deviceId = entryData[1]
 			return
 		}
 	}
