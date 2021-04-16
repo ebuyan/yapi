@@ -14,25 +14,23 @@ import (
 )
 
 type Conversation struct {
-	Device     *glagol.Device
-	Connection *websocket.Conn
+	device     *glagol.Device
+	connection *websocket.Conn
 	Error      chan string
 	BrokenPipe chan bool
-	Locked     bool
 }
 
 func NewConversation(device *glagol.Device) *Conversation {
 	return &Conversation{
-		Device:     device,
+		device:     device,
 		Error:      make(chan string),
 		BrokenPipe: make(chan bool),
-		Locked:     false,
 	}
 }
 
 func (c *Conversation) Connect() (err error) {
 	dialer := websocket.DefaultDialer
-	certs, err := GetCerts(c.Device.Glagol.Security.ServerCertificate)
+	certs, err := GetCerts(c.device.Glagol.Security.ServerCertificate)
 	if err != nil {
 		return
 	}
@@ -40,7 +38,7 @@ func (c *Conversation) Connect() (err error) {
 		RootCAs:            certs,
 		InsecureSkipVerify: true,
 	}
-	c.Connection, _, err = dialer.Dial(c.Device.Config.GetHost(), c.Device.Config.GetHeaderOrigin())
+	c.connection, _, err = dialer.Dial(c.device.Config.GetHost(), c.device.Config.GetHeaderOrigin())
 	if err != nil {
 		return
 	}
@@ -69,24 +67,30 @@ func (c *Conversation) Run() {
 	}
 }
 
+func (c *Conversation) ReadFromDevice() glagol.DeviceState {
+	for c.device.Locked() {
+	}
+	return c.device.State
+}
+
 func (c *Conversation) SendToDevice(msg Payload) error {
-	payload := DeviceRequest{
-		ConversationToken: c.Device.Token,
+	message := DeviceRequest{
+		ConversationToken: c.device.Token,
 		Id:                uuid.New().String(),
 		SentTime:          time.Now().UnixNano(),
 		Payload:           msg,
 	}
-	return c.Connection.WriteJSON(payload)
+	return c.connection.WriteJSON(message)
 }
 
 func (c *Conversation) Close() {
-	c.Connection.Close()
+	c.connection.Close()
 	log.Println("Connection closed")
 }
 
 func (c *Conversation) read() {
 	for {
-		_, message, err := c.Connection.ReadMessage()
+		_, message, err := c.connection.ReadMessage()
 		if err != nil {
 			c.Error <- err.Error()
 			return
@@ -96,15 +100,14 @@ func (c *Conversation) read() {
 }
 
 func (c *Conversation) updateState(msg []byte) {
-	for c.Locked {
+	for c.device.Locked() {
 	}
-	c.Locked = true
+	c.device.Lock()
+	defer c.device.Unlock()
 
 	latestState := glagol.DeviceState{}
 	json.Unmarshal(msg, &latestState)
-	c.Device.State = latestState
-
-	c.Locked = false
+	c.device.State = latestState
 }
 
 func (c *Conversation) ping() (err error) {

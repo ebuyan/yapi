@@ -10,6 +10,8 @@ type Device struct {
 	Config DeviceConfig `json:"-"`
 	Token  string       `json:"-"`
 	State  DeviceState  `json:"-"`
+
+	locked bool `json:"-"`
 }
 
 type DeviceGlagol struct {
@@ -43,4 +45,16 @@ type PlayerState struct {
 
 type Extra struct {
 	CoverURI string `json:"coverURI"`
+}
+
+func (d Device) Locked() bool {
+	return d.locked
+}
+
+func (d Device) Lock() {
+	d.locked = true
+}
+
+func (d Device) Unlock() {
+	d.locked = false
 }

@@ -26,6 +26,6 @@ func (h *Http) Start() {
 	r.HandleFunc("/", h.Handler.SetState).Methods("POST")
 	r.HandleFunc("/", h.Handler.GetState).Methods("GET")
 	http.Handle("/", r)
-	log.Fatalln(http.ListenAndServe(h.Host, nil))
 	log.Println("Start server on " + h.Host)
+	log.Fatalln(http.ListenAndServe(h.Host, nil))
 }

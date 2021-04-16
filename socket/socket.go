@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"yapi/glagol"
+	"time"
 )
 
 type Socket struct {
-	*Conversation
+	conn *Conversation
 }
 
-func NewSocket(device *glagol.Device) Socket {
-	return Socket{NewConversation(device)}
+func NewSocket(conn *Conversation) Socket {
+	return Socket{conn}
 }
 
 func (s Socket) Run() (err error) {
-	err = s.Conversation.Connect()
+	err = s.conn.Connect()
 	if err != nil {
 		return
 	}
@@ -27,29 +27,37 @@ func (s Socket) Run() (err error) {
 func (s Socket) Wright(w http.ResponseWriter, r *http.Request) {
 	msg := Payload{}
 	json.NewDecoder(r.Body).Decode(&msg)
-	err := s.Conversation.SendToDevice(msg)
+	err := s.conn.SendToDevice(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		s.Conversation.Error <- err.Error()
+		s.conn.Error <- err.Error()
 	}
 }
 
 func (s Socket) Read(w http.ResponseWriter) {
-	js, _ := json.Marshal(s.Conversation.Device.State)
+	js, _ := json.Marshal(s.conn.ReadFromDevice())
 	w.Write(js)
 }
 
 func (s Socket) listen() {
-	go s.Conversation.Run()
+	go s.conn.Run()
 
 	for {
-		broke := <-s.Conversation.BrokenPipe
+		broke := <-s.conn.BrokenPipe
 		if broke {
 			log.Println("Broken pipe")
-			err := s.Run()
-			if err != nil {
-				log.Fatalln(err)
-			}
+			s.waitDevice()
+		}
+	}
+}
+
+func (s Socket) waitDevice() {
+	err := s.Run()
+	if err != nil {
+		log.Println("Wait device: " + err.Error())
+		select {
+		case <-time.After(time.Second):
+			s.waitDevice()
 		}
 	}
 }
