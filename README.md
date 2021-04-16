@@ -22,32 +22,84 @@ STATION_ADDR - ipadress станции
 
 <h3>API</h3>
 
-- Статус `GET localhost:8001/`
-- Перемотка `POST {
+- Статус Станции \
+`GET localhost:8001`
+```json
+{
+   "state":{
+      "playerState":{
+         "duration":853,
+         "extra":{
+            "coverURI":""
+         },
+         "hasPause":true,
+         "hasPlay":false,
+         "progress":811,
+         "subtitle":"Исполнитель",
+         "title":"Песня"
+      },
+      "playing":false,
+      "volume":0.5
+   }
+}
+```
+- Перемотка \
+`POST localhost:8001`
+```json
+{
     "command": "rewind",
     "position" : 120
-}`
-- Продолжить `POST {
+}
+```
+- Продолжить \
+`POST localhost:8001`
+```json
+{
     "command": "play"
-}`
-- Пауза `POST {
+}
+```
+- Пауза \
+`POST localhost:8001`
+```json
+{
     "command": "stop"
-}`
-- Следующий `POST {
+}
+```
+- Следующий \
+`POST localhost:8001`
+```json
+{
     "command": "next"
-}`
-- Предыдущий `POST {
+}
+```
+- Предыдущий \
+`POST localhost:8001`
+```json
+{
     "command": "prev"
-}`
-- Изменить громкость `POST {
+}
+```
+- Изменить громкость \
+`POST localhost:8001`
+```json
+{
     "command" : "setVolume",
 	"volume" : 0.5
-}`
-- Выполнить команду `POST {
+}
+```
+- Выполнить команду \
+`POST localhost:8001`
+```json
+{
     "command" : "sendText",
 	"text" : "Включи музыку"
-}`
-- Воспроизвести текст `POST {
+}
+```
+- Воспроизвести текст \
+`POST localhost:8001`
+```json
+{
     "command" : "sendText",
-	"text" : "Повтори за мной 'Саша, иди собирай игрушки, а то выключу интернет в доме'"
-}`
+	"text" : "Повтори за мной 'Повторяю'"
+}
+```
