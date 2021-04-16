@@ -35,9 +35,8 @@ func (s Socket) Wright(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Socket) Read(w http.ResponseWriter, r *http.Request) {
-	js, _ := json.Marshal(s.conn.ReadFromDevice())
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	json.NewEncoder(w).Encode(s.conn.ReadFromDevice())
 }
 
 func (s Socket) listen() {
