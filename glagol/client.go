@@ -23,7 +23,7 @@ func NewGlagolClient(deviceId, token string) GlagolClient {
 	}
 }
 
-func (g GlagolClient) GetDevice() (device *Device, err error) {
+func (g *GlagolClient) GetDevice() (device *Device, err error) {
 	devices, err := g.getDeviceList()
 	if err != nil {
 		return
@@ -44,7 +44,7 @@ func (g GlagolClient) GetDevice() (device *Device, err error) {
 	return
 }
 
-func (g GlagolClient) getDeviceList() ([]*Device, error) {
+func (g *GlagolClient) getDeviceList() ([]*Device, error) {
 	responseBody, err := g.sendRequest("device_list")
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (g GlagolClient) getDeviceList() ([]*Device, error) {
 	return list, err
 }
 
-func (g GlagolClient) discoverDevices(devices []*Device) (device *Device, err error) {
+func (g *GlagolClient) discoverDevices(devices []*Device) (device *Device, err error) {
 	for _, device = range devices {
 		if device.Id == g.deviceId {
 			return
@@ -68,7 +68,7 @@ func (g GlagolClient) discoverDevices(devices []*Device) (device *Device, err er
 	return
 }
 
-func (api GlagolClient) getJwtTokenForDevice(device *Device) (token string, err error) {
+func (api *GlagolClient) getJwtTokenForDevice(device *Device) (token string, err error) {
 	responseBody, err := api.sendRequest("token?device_id=" + device.Id + "&platform=" + device.Platform)
 	if err != nil {
 		return
@@ -79,7 +79,7 @@ func (api GlagolClient) getJwtTokenForDevice(device *Device) (token string, err 
 	return
 }
 
-func (g GlagolClient) sendRequest(endPoint string) (response []byte, err error) {
+func (g *GlagolClient) sendRequest(endPoint string) (response []byte, err error) {
 	req, err := http.NewRequest(http.MethodGet, g.baseUrl+"/"+endPoint, nil)
 	req.Header.Set("Authorization", "Oauth "+g.token)
 	req.Header.Set("Content-Type", "application/json")
