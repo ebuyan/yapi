@@ -33,25 +33,24 @@ func (g GlagolClient) GetDevice() (*Device, error) {
 	token, err := g.getJwtTokenForDevice(device)
 	device.Token = token
 	device.Config = g.device
-	return &device, err
+	return device, err
 }
 
-func (g GlagolClient) getDeviceList() (list []Device, err error) {
+func (g GlagolClient) getDeviceList() ([]*Device, error) {
 	responseBody, err := g.sendRequest("device_list")
 	if err != nil {
-		return
+		return nil, err
 	}
 	response := DeviceListResponse{}
 	json.Unmarshal(responseBody, &response)
-	list = response.Devices
+	list := response.Devices
 	if len(list) == 0 {
 		err = errors.New("No devices found at account")
-		return
 	}
-	return
+	return list, err
 }
 
-func (g GlagolClient) discoverDevices(devices []Device) (device Device, err error) {
+func (g GlagolClient) discoverDevices(devices []*Device) (device *Device, err error) {
 	for _, device = range devices {
 		if device.Id == g.device.Id {
 			return
@@ -61,7 +60,7 @@ func (g GlagolClient) discoverDevices(devices []Device) (device Device, err erro
 	return
 }
 
-func (api GlagolClient) getJwtTokenForDevice(device Device) (token string, err error) {
+func (api GlagolClient) getJwtTokenForDevice(device *Device) (token string, err error) {
 	responseBody, err := api.sendRequest("token?device_id=" + device.Id + "&platform=" + device.Platform)
 	if err != nil {
 		return
@@ -89,7 +88,7 @@ func (g GlagolClient) sendRequest(endPoint string) (response []byte, err error) 
 }
 
 type DeviceListResponse struct {
-	Devices []Device `json:"devices"`
+	Devices []*Device `json:"devices"`
 }
 
 type TokenResponse struct {

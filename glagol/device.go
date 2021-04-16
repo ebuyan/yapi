@@ -18,43 +18,43 @@ type Device struct {
 	locked bool `json:"-"`
 }
 
-func (d Device) GetState() []byte {
+func (d *Device) GetState() []byte {
 	js, _ := json.Marshal(d.State)
 	return js
 }
 
-func (d Device) SetState(state []byte) {
+func (d *Device) SetState(state []byte) {
 	s := DeviceState{}
 	json.Unmarshal(state, &s)
 	d.State = s
 }
 
-func (d Device) GetHost() string {
+func (d *Device) GetHost() string {
 	host := url.URL{Scheme: "wss", Host: d.Config.IpAddr + ":" + d.Config.Port, Path: "/"}
 	return host.String()
 }
 
-func (d Device) GetOrigin() http.Header {
+func (d *Device) GetOrigin() http.Header {
 	return http.Header{"Origin": {"http://yandex.ru/"}}
 }
 
-func (d Device) GetToken() string {
+func (d *Device) GetToken() string {
 	return d.Token
 }
 
-func (d Device) GetSertificate() string {
+func (d *Device) GetSertificate() string {
 	return d.Glagol.Security.ServerCertificate
 }
 
-func (d Device) Locked() bool {
+func (d *Device) Locked() bool {
 	return d.locked
 }
 
-func (d Device) Lock() {
+func (d *Device) Lock() {
 	d.locked = true
 }
 
-func (d Device) Unlock() {
+func (d *Device) Unlock() {
 	d.locked = false
 }
 
