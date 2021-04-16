@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"yapi/glagol"
 	"yapi/server"
 	"yapi/socket"
@@ -22,7 +23,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	client := glagol.NewGlagolClient(oauthToken)
+	client := glagol.NewGlagolClient(os.Getenv("DEVICE_ID"), oauthToken)
 	station, err := client.GetDevice()
 	if err != nil {
 		log.Fatalln(err)

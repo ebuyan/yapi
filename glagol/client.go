@@ -8,32 +8,40 @@ import (
 )
 
 type GlagolClient struct {
-	device  DeviceConfig
-	token   string
-	baseUrl string
+	mdns     MDNS
+	deviceId string
+	token    string
+	baseUrl  string
 }
 
-func NewGlagolClient(token string) GlagolClient {
+func NewGlagolClient(deviceId, token string) GlagolClient {
 	return GlagolClient{
-		device:  NewDeviceConfig(),
-		token:   token,
-		baseUrl: "https://quasar.yandex.net/glagol",
+		mdns:     NewMDNS(),
+		deviceId: deviceId,
+		token:    token,
+		baseUrl:  "https://quasar.yandex.net/glagol",
 	}
 }
 
-func (g GlagolClient) GetDevice() (*Device, error) {
+func (g GlagolClient) GetDevice() (device *Device, err error) {
 	devices, err := g.getDeviceList()
 	if err != nil {
-		return nil, err
+		return
 	}
-	device, err := g.discoverDevices(devices)
+	device, err = g.discoverDevices(devices)
 	if err != nil {
-		return nil, err
+		return
 	}
 	token, err := g.getJwtTokenForDevice(device)
+	if err != nil {
+		return
+	}
 	device.Token = token
-	device.Config = g.device
-	return device, err
+	err = g.mdns.SetIpAddrPort(device)
+	if err != nil {
+		return
+	}
+	return
 }
 
 func (g GlagolClient) getDeviceList() ([]*Device, error) {
@@ -52,7 +60,7 @@ func (g GlagolClient) getDeviceList() ([]*Device, error) {
 
 func (g GlagolClient) discoverDevices(devices []*Device) (device *Device, err error) {
 	for _, device = range devices {
-		if device.Id == g.device.Id {
+		if device.Id == g.deviceId {
 			return
 		}
 	}

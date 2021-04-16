@@ -58,6 +58,11 @@ func (d *Device) Unlock() {
 	d.locked = false
 }
 
+type DeviceConfig struct {
+	Port   string
+	IpAddr string
+}
+
 type DeviceGlagol struct {
 	Security DeviceGlagolSecurity `json:"security"`
 }
