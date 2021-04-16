@@ -28,7 +28,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	conversation := socket.NewConversation(&station)
+	conversation := socket.NewConversation(station)
 	socket := socket.NewSocket(conversation)
 	err = socket.Run()
 	if err != nil {

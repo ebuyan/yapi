@@ -2,25 +2,23 @@ package socket
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
 	"time"
-	"yapi/glagol"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 type Conversation struct {
-	device     *glagol.Device
+	device     Device
 	connection *websocket.Conn
 	Error      chan string
 	BrokenPipe chan bool
 }
 
-func NewConversation(device *glagol.Device) *Conversation {
+func NewConversation(device Device) *Conversation {
 	return &Conversation{
 		device:     device,
 		Error:      make(chan string),
@@ -30,7 +28,7 @@ func NewConversation(device *glagol.Device) *Conversation {
 
 func (c *Conversation) Connect() (err error) {
 	dialer := websocket.DefaultDialer
-	certs, err := GetCerts(c.device.Glagol.Security.ServerCertificate)
+	certs, err := GetCerts(c.device.GetSertificate())
 	if err != nil {
 		return
 	}
@@ -38,7 +36,7 @@ func (c *Conversation) Connect() (err error) {
 		RootCAs:            certs,
 		InsecureSkipVerify: true,
 	}
-	c.connection, _, err = dialer.Dial(c.device.Config.GetHost(), c.device.Config.GetHeaderOrigin())
+	c.connection, _, err = dialer.Dial(c.device.GetHost(), c.device.GetOrigin())
 	if err != nil {
 		return
 	}
@@ -67,15 +65,15 @@ func (c *Conversation) Run() {
 	}
 }
 
-func (c *Conversation) ReadFromDevice() glagol.DeviceState {
+func (c *Conversation) ReadFromDevice() interface{} {
 	for c.device.Locked() {
 	}
-	return c.device.State
+	return c.device.GetState()
 }
 
 func (c *Conversation) SendToDevice(msg Payload) error {
 	message := DeviceRequest{
-		ConversationToken: c.device.Token,
+		ConversationToken: c.device.GetToken(),
 		Id:                uuid.New().String(),
 		SentTime:          time.Now().UnixNano(),
 		Payload:           msg,
@@ -104,10 +102,7 @@ func (c *Conversation) updateState(msg []byte) {
 	}
 	c.device.Lock()
 	defer c.device.Unlock()
-
-	latestState := glagol.DeviceState{}
-	json.Unmarshal(msg, &latestState)
-	c.device.State = latestState
+	c.device.SetState(msg)
 }
 
 func (c *Conversation) ping() (err error) {

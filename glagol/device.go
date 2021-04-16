@@ -1,6 +1,10 @@
 package glagol
 
-type DeviceList []Device
+import (
+	"encoding/json"
+	"net/http"
+	"net/url"
+)
 
 type Device struct {
 	Id       string       `json:"id"`
@@ -12,6 +16,46 @@ type Device struct {
 	State  DeviceState  `json:"-"`
 
 	locked bool `json:"-"`
+}
+
+func (d Device) GetState() []byte {
+	js, _ := json.Marshal(d.State)
+	return js
+}
+
+func (d Device) SetState(state []byte) {
+	s := DeviceState{}
+	json.Unmarshal(state, &s)
+	d.State = s
+}
+
+func (d Device) GetHost() string {
+	host := url.URL{Scheme: "wss", Host: d.Config.IpAddr + ":" + d.Config.Port, Path: "/"}
+	return host.String()
+}
+
+func (d Device) GetOrigin() http.Header {
+	return http.Header{"Origin": {"http://yandex.ru/"}}
+}
+
+func (d Device) GetToken() string {
+	return d.Token
+}
+
+func (d Device) GetSertificate() string {
+	return d.Glagol.Security.ServerCertificate
+}
+
+func (d Device) Locked() bool {
+	return d.locked
+}
+
+func (d Device) Lock() {
+	d.locked = true
+}
+
+func (d Device) Unlock() {
+	d.locked = false
 }
 
 type DeviceGlagol struct {
@@ -45,16 +89,4 @@ type PlayerState struct {
 
 type Extra struct {
 	CoverURI string `json:"coverURI"`
-}
-
-func (d Device) Locked() bool {
-	return d.locked
-}
-
-func (d Device) Lock() {
-	d.locked = true
-}
-
-func (d Device) Unlock() {
-	d.locked = false
 }
