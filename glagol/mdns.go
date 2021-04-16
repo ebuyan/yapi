@@ -21,6 +21,7 @@ func (m MDNS) SetIpAddrPort(device *Device) (err error) {
 	entriesCh := make(chan *mdns.ServiceEntry)
 	go func() {
 		for entry := range entriesCh {
+			log.Println(entry)
 			if device.Id == m.GetDeviceId(entry) {
 				device.Config.IpAddr = entry.AddrV4.String()
 				device.Config.Port = strconv.Itoa(entry.Port)

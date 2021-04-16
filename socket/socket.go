@@ -8,11 +8,12 @@ import (
 )
 
 type Socket struct {
-	conn *Conversation
+	conn     *Conversation
+	attempts int
 }
 
 func NewSocket(conn *Conversation) Socket {
-	return Socket{conn}
+	return Socket{conn, 0}
 }
 
 func (s Socket) Run() (err error) {
@@ -20,6 +21,7 @@ func (s Socket) Run() (err error) {
 	if err != nil {
 		return
 	}
+	s.attempts = 0
 	go s.listen()
 	return
 }
@@ -54,10 +56,16 @@ func (s Socket) listen() {
 func (s Socket) waitDevice() {
 	err := s.Run()
 	if err != nil {
+		if s.attempts > 5 {
+			log.Fatalln("Max attempts to connect")
+			return
+		}
 		log.Println("Wait device: " + err.Error())
 		select {
 		case <-time.After(time.Second):
+			s.attempts++
 			s.waitDevice()
+			return
 		}
 	}
 }
