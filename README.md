@@ -47,43 +47,43 @@ STATION_ADDR - ipadress станции
 `POST localhost:8001`
 ```json
 {
-    "command": "rewind",
-    "position" : 120
+	"command": "rewind",
+	"position" : 120
 }
 ```
 - Продолжить \
 `POST localhost:8001`
 ```json
 {
-    "command": "play"
+	"command": "play"
 }
 ```
 - Пауза \
 `POST localhost:8001`
 ```json
 {
-    "command": "stop"
+	"command": "stop"
 }
 ```
 - Следующий \
 `POST localhost:8001`
 ```json
 {
-    "command": "next"
+	"command": "next"
 }
 ```
 - Предыдущий \
 `POST localhost:8001`
 ```json
 {
-    "command": "prev"
+	"command": "prev"
 }
 ```
 - Изменить громкость \
 `POST localhost:8001`
 ```json
 {
-    "command" : "setVolume",
+    	"command" : "setVolume",
 	"volume" : 0.5
 }
 ```
@@ -91,7 +91,7 @@ STATION_ADDR - ipadress станции
 `POST localhost:8001`
 ```json
 {
-    "command" : "sendText",
+    	"command" : "sendText",
 	"text" : "Включи музыку"
 }
 ```
@@ -99,7 +99,7 @@ STATION_ADDR - ipadress станции
 `POST localhost:8001`
 ```json
 {
-    "command" : "sendText",
+    	"command" : "sendText",
 	"text" : "Повтори за мной 'Повторяю'"
 }
 ```
