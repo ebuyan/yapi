@@ -59,6 +59,7 @@ func (d *Device) Unlock() {
 }
 
 type DeviceConfig struct {
+	Done   bool
 	Port   string
 	IpAddr string
 }

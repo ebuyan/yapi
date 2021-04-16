@@ -41,6 +41,9 @@ func (g *GlagolClient) GetDevice() (device *Device, err error) {
 	if err != nil {
 		return
 	}
+	if !device.Config.Done {
+		err = errors.New("Failed to resolve device IpAddr")
+	}
 	return
 }
 
