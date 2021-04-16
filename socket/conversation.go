@@ -65,7 +65,7 @@ func (c *Conversation) Run() {
 	}
 }
 
-func (c *Conversation) ReadFromDevice() interface{} {
+func (c *Conversation) ReadFromDevice() []byte {
 	for c.device.Locked() {
 	}
 	return c.device.GetState()
