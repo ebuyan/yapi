@@ -16,6 +16,8 @@ type Conversation struct {
 	connection *websocket.Conn
 	Error      chan string
 	BrokenPipe chan bool
+	writeWait  time.Duration
+	pingPeriod time.Duration
 }
 
 func NewConversation(device Device) *Conversation {
@@ -23,6 +25,8 @@ func NewConversation(device Device) *Conversation {
 		device:     device,
 		Error:      make(chan string),
 		BrokenPipe: make(chan bool),
+		writeWait:  10 * time.Second,
+		pingPeriod: 60 * time.Second,
 	}
 }
 
@@ -41,7 +45,7 @@ func (c *Conversation) Connect() (err error) {
 		return
 	}
 	log.Println("Successful connection to the station")
-	err = c.ping()
+	err = c.pingDevice()
 	return
 }
 
@@ -49,6 +53,7 @@ func (c *Conversation) Run() {
 	c.BrokenPipe <- false
 	defer c.Close()
 	go c.read()
+	go c.pingConn()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -78,6 +83,7 @@ func (c *Conversation) SendToDevice(msg Payload) error {
 		SentTime:          time.Now().UnixNano(),
 		Payload:           msg,
 	}
+	c.connection.SetWriteDeadline(time.Now().Add(c.writeWait))
 	return c.connection.WriteJSON(message)
 }
 
@@ -105,7 +111,22 @@ func (c *Conversation) updateState(msg []byte) {
 	c.device.SetState(msg)
 }
 
-func (c *Conversation) ping() (err error) {
+func (c *Conversation) pingConn() {
+	ticker := time.NewTicker(c.pingPeriod)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if err := c.connection.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(c.writeWait)); err != nil {
+				c.Error <- "Ping error: " + err.Error()
+			}
+		case <-c.BrokenPipe:
+			return
+		}
+	}
+}
+
+func (c *Conversation) pingDevice() (err error) {
 	err = c.SendToDevice(Payload{Command: "ping"})
 	if err != nil {
 		return
