@@ -10,7 +10,7 @@ Group=root
 
 WorkingDirectory=/opt/yapi
 ExecStart=/opt/yapi/yapi
-StandardError=append:/var/log/ohyandex/app.log
+StandardError=append:/var/log/yapi/app.log
 
 Restart=on-failure
 RestartSec=10
