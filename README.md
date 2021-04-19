@@ -15,6 +15,8 @@ HTTP_HOST - хост http сервера (по-умолчанию `localhost:800
 `cd /opt` \
 `git clone https://github.com/ebuyan/yapi.git` \
 `cp .env .env.local` \
+`mkdir -p /var/log/yapi` \
+`touch /var/log/yapi/app.log` \
 `cp yapi.service /etc/systemd/systemd` \
 `systemctl daemon-reload` \
 `systemctl start yapi.service` \

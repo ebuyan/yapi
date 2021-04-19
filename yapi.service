@@ -15,9 +15,7 @@ StandardError=append:/var/log/yapi/app.log
 Restart=on-failure
 RestartSec=10
 
-ExecStartPre=/bin/mkdir -p /var/log/yapi
 ExecStartPre=/bin/chown syslog:adm /var/log/yapi
-ExecStartPre=/bin/touch /var/log/yapi/app.log
 ExecStartPre=/bin/chmod 775 /opt/yapi/yapi
 
 [Install]
