@@ -21,7 +21,7 @@ func (s Socket) Run() (err error) {
 	if err != nil {
 		return
 	}
-	s.attempts = 0
+	go s.conn.Run()
 	go s.listen()
 	return
 }
@@ -42,30 +42,26 @@ func (s Socket) Read(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Socket) listen() {
-	go s.conn.Run()
-
 	for {
-		broke := <-s.conn.BrokenPipe
-		if broke {
-			log.Println("Broken pipe")
-			s.waitDevice()
+		if broke := <-s.conn.BrokenPipe; broke {
+			select {
+			case <-time.After(time.Second):
+				log.Println("Broken pipe")
+				s.try()
+				return
+			}
 		}
 	}
 }
 
-func (s Socket) waitDevice() {
+func (s Socket) try() {
+	if s.attempts >= 3 {
+		log.Fatalln("Max attempts to connect")
+		return
+	}
 	err := s.Run()
 	if err != nil {
-		if s.attempts > 5 {
-			log.Fatalln("Max attempts to connect")
-			return
-		}
-		log.Println("Wait device: " + err.Error())
-		select {
-		case <-time.After(time.Second):
-			s.attempts++
-			s.waitDevice()
-			return
-		}
+		log.Fatalln(err)
 	}
+	s.attempts++
 }

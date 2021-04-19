@@ -44,8 +44,8 @@ func (c *Conversation) Connect() (err error) {
 	if err != nil {
 		return
 	}
-	log.Println("Successful connection to the station")
 	err = c.pingDevice()
+	log.Println("Successful connection to the station")
 	return
 }
 
