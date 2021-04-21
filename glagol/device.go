@@ -14,8 +14,6 @@ type Device struct {
 	Config DeviceConfig `json:"-"`
 	Token  string       `json:"-"`
 	State  DeviceState  `json:"-"`
-
-	locked bool `json:"-"`
 }
 
 func (d *Device) GetState() []byte {
@@ -44,18 +42,6 @@ func (d *Device) GetToken() string {
 
 func (d *Device) GetSertificate() string {
 	return d.Glagol.Security.ServerCertificate
-}
-
-func (d *Device) Locked() bool {
-	return d.locked
-}
-
-func (d *Device) Lock() {
-	d.locked = true
-}
-
-func (d *Device) Unlock() {
-	d.locked = false
 }
 
 type DeviceConfig struct {

@@ -11,8 +11,4 @@ type Device interface {
 
 	GetToken() string
 	GetSertificate() string
-
-	Locked() bool
-	Lock()
-	Unlock()
 }

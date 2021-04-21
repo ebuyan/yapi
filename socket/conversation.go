@@ -71,8 +71,6 @@ func (c *Conversation) Run() {
 }
 
 func (c *Conversation) ReadFromDevice() []byte {
-	for c.device.Locked() {
-	}
 	return c.device.GetState()
 }
 
@@ -94,21 +92,13 @@ func (c *Conversation) Close() {
 
 func (c *Conversation) read() {
 	for {
-		_, message, err := c.connection.ReadMessage()
+		_, msg, err := c.connection.ReadMessage()
 		if err != nil {
 			c.Error <- err.Error()
 			return
 		}
-		go c.updateState(message)
+		c.device.SetState(msg)
 	}
-}
-
-func (c *Conversation) updateState(msg []byte) {
-	for c.device.Locked() {
-	}
-	c.device.Lock()
-	defer c.device.Unlock()
-	c.device.SetState(msg)
 }
 
 func (c *Conversation) pingConn() {
