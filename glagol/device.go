@@ -7,13 +7,24 @@ import (
 )
 
 type Device struct {
-	Id       string       `json:"id"`
-	Platform string       `json:"platform"`
-	Glagol   DeviceGlagol `json:"glagol"`
+	id          string
+	platform    string
+	certificate string
+	token       string
+	host        string
+	processed   bool
 
-	Config DeviceConfig `json:"-"`
-	Token  string       `json:"-"`
-	State  DeviceState  `json:"-"`
+	State DeviceState
+
+	refreshTokenHandler func(deviceId, platform string) (string, error)
+}
+
+func NewDevice(deviceId, platform, certificate string) *Device {
+	return &Device{id: deviceId, platform: platform, certificate: certificate}
+}
+
+func (d *Device) GetId() string {
+	return d.id
 }
 
 func (d *Device) GetState() []byte {
@@ -22,41 +33,43 @@ func (d *Device) GetState() []byte {
 }
 
 func (d *Device) SetState(state []byte) {
-	s := DeviceState{}
-	json.Unmarshal(state, &s)
-	d.State = s
+	json.Unmarshal(state, &d.State)
 }
 
 func (d *Device) GetHost() string {
-	host := url.URL{Scheme: "wss", Host: d.Config.IpAddr + ":" + d.Config.Port, Path: "/"}
-	return host.String()
+	return d.host
+}
+
+func (d *Device) SetHost(ipAddr, port string) {
+	host := url.URL{Scheme: "wss", Host: ipAddr + ":" + port, Path: "/"}
+	d.host = host.String()
+	d.processed = true
 }
 
 func (d *Device) GetOrigin() http.Header {
 	return http.Header{"Origin": {"http://yandex.ru/"}}
 }
 
+func (d *Device) SetRefreshTokenHandler(handler func(deviceId, platform string) (string, error)) {
+	d.refreshTokenHandler = handler
+}
+
+func (d *Device) RefreshToken() (err error) {
+	token, err := d.refreshTokenHandler(d.id, d.platform)
+	d.token = token
+	return
+}
+
 func (d *Device) GetToken() string {
-	return d.Token
+	return d.token
 }
 
-func (d *Device) GetSertificate() string {
-	return d.Glagol.Security.ServerCertificate
+func (d *Device) GetCertificate() string {
+	return d.certificate
 }
 
-type DeviceConfig struct {
-	Done   bool
-	Port   string
-	IpAddr string
-}
-
-type DeviceGlagol struct {
-	Security DeviceGlagolSecurity `json:"security"`
-}
-
-type DeviceGlagolSecurity struct {
-	ServerCertificate string `json:"server_certificate"`
-	ServerPrivateKey  string `json:"server_private_key"`
+func (d *Device) IsProcessed() bool {
+	return d.processed
 }
 
 type DeviceState struct {

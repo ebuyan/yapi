@@ -28,26 +28,21 @@ func (g *GlagolClient) GetDevice() (device *Device, err error) {
 	if err != nil {
 		return
 	}
-	device, err = g.discoverDevices(devices)
+	deviceResp, err := g.discoverDevices(devices)
 	if err != nil {
 		return
 	}
-	token, err := g.getJwtTokenForDevice(device)
+	device = NewDevice(deviceResp.Id, deviceResp.Platform, deviceResp.Glagol.Security.ServerCertificate)
+	err = g.mdns.SetHost(device)
 	if err != nil {
 		return
 	}
-	device.Token = token
-	err = g.mdns.SetConfig(device)
-	if err != nil {
-		return
-	}
-	if !device.Config.Done {
-		err = errors.New("Failed to resolve device IpAddr")
-	}
+	device.SetRefreshTokenHandler(g.getJwtTokenForDevice)
+	err = device.RefreshToken()
 	return
 }
 
-func (g *GlagolClient) getDeviceList() ([]*Device, error) {
+func (g *GlagolClient) getDeviceList() ([]DeviceResponse, error) {
 	responseBody, err := g.sendRequest("device_list")
 	if err != nil {
 		return nil, err
@@ -61,7 +56,7 @@ func (g *GlagolClient) getDeviceList() ([]*Device, error) {
 	return list, err
 }
 
-func (g *GlagolClient) discoverDevices(devices []*Device) (device *Device, err error) {
+func (g *GlagolClient) discoverDevices(devices []DeviceResponse) (device DeviceResponse, err error) {
 	for _, device = range devices {
 		if device.Id == g.deviceId {
 			return
@@ -71,8 +66,8 @@ func (g *GlagolClient) discoverDevices(devices []*Device) (device *Device, err e
 	return
 }
 
-func (api *GlagolClient) getJwtTokenForDevice(device *Device) (token string, err error) {
-	responseBody, err := api.sendRequest("token?device_id=" + device.Id + "&platform=" + device.Platform)
+func (api *GlagolClient) getJwtTokenForDevice(deviceId, platform string) (token string, err error) {
+	responseBody, err := api.sendRequest("token?device_id=" + deviceId + "&platform=" + platform)
 	if err != nil {
 		return
 	}
@@ -99,7 +94,22 @@ func (g *GlagolClient) sendRequest(endPoint string) (response []byte, err error)
 }
 
 type DeviceListResponse struct {
-	Devices []*Device `json:"devices"`
+	Devices []DeviceResponse `json:"devices"`
+}
+
+type DeviceResponse struct {
+	Id       string       `json:"id"`
+	Platform string       `json:"platform"`
+	Glagol   DeviceGlagol `json:"glagol"`
+}
+
+type DeviceGlagol struct {
+	Security DeviceGlagolSecurity `json:"security"`
+}
+
+type DeviceGlagolSecurity struct {
+	ServerCertificate string `json:"server_certificate"`
+	ServerPrivateKey  string `json:"server_private_key"`
 }
 
 type TokenResponse struct {

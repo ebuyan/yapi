@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,7 +33,7 @@ func NewConversation(device Device) *Conversation {
 
 func (c *Conversation) Connect() (err error) {
 	dialer := websocket.DefaultDialer
-	certs, err := GetCerts(c.device.GetSertificate())
+	certs, err := GetCerts(c.device.GetCertificate())
 	if err != nil {
 		return
 	}
@@ -50,7 +51,6 @@ func (c *Conversation) Connect() (err error) {
 }
 
 func (c *Conversation) Run() {
-	c.BrokenPipe <- false
 	defer c.Close()
 	go c.read()
 	go c.pingConn()
@@ -61,6 +61,12 @@ func (c *Conversation) Run() {
 	select {
 	case err := <-c.Error:
 		log.Println(err)
+		if strings.Contains(err, "Invalid token") {
+			e := c.device.RefreshToken()
+			if e != nil {
+				log.Fatalln(e)
+			}
+		}
 		select {
 		case <-time.After(time.Second):
 			c.BrokenPipe <- true
@@ -117,11 +123,7 @@ func (c *Conversation) pingConn() {
 }
 
 func (c *Conversation) pingDevice() (err error) {
-	err = c.SendToDevice(Payload{Command: "ping"})
-	if err != nil {
-		return
-	}
-	return
+	return c.SendToDevice(Payload{Command: "ping"})
 }
 
 type DeviceRequest struct {

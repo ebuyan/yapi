@@ -1,6 +1,7 @@
 package glagol
 
 import (
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -16,22 +17,27 @@ func NewMDNS() mDNS {
 	return mDNS{"_yandexio._tcp"}
 }
 
-func (m *mDNS) SetConfig(device *Device) (err error) {
+func (m *mDNS) SetHost(device *Device) (err error) {
 	entriesCh := make(chan *mdns.ServiceEntry)
 	defer close(entriesCh)
 
 	go func() {
 		for entry := range entriesCh {
-			if device.Id == m.getDeviceId(entry) {
-				device.Config.Done = true
-				device.Config.IpAddr = entry.AddrV4.String()
-				device.Config.Port = strconv.Itoa(entry.Port)
+			if device.GetId() == m.getDeviceId(entry) {
+				device.SetHost(entry.AddrV4.String(), strconv.Itoa(entry.Port))
 				log.Println("Found device on: " + device.GetHost())
 				return
 			}
 		}
 	}()
 	err = mdns.Lookup(m.service, entriesCh)
+	if err != nil {
+		return
+	}
+	if !device.IsProcessed() {
+		err = errors.New("mdns: No device found")
+	}
+
 	return
 }
 

@@ -9,6 +9,7 @@ type Device interface {
 	GetHost() string
 	GetOrigin() http.Header
 
+	RefreshToken() error
 	GetToken() string
-	GetSertificate() string
+	GetCertificate() string
 }

@@ -8,15 +8,14 @@ import (
 )
 
 type Socket struct {
-	conn     *Conversation
-	attempts int
+	conn *Conversation
 }
 
 func NewSocket(conn *Conversation) Socket {
-	return Socket{conn, 0}
+	return Socket{conn}
 }
 
-func (s Socket) Run() (err error) {
+func (s *Socket) Run() (err error) {
 	err = s.conn.Connect()
 	if err != nil {
 		return
@@ -26,7 +25,7 @@ func (s Socket) Run() (err error) {
 	return
 }
 
-func (s Socket) Wright(w http.ResponseWriter, r *http.Request) {
+func (s *Socket) Wright(w http.ResponseWriter, r *http.Request) {
 	msg := Payload{}
 	json.NewDecoder(r.Body).Decode(&msg)
 	err := s.conn.SendToDevice(msg)
@@ -36,12 +35,12 @@ func (s Socket) Wright(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s Socket) Read(w http.ResponseWriter, r *http.Request) {
+func (s *Socket) Read(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(s.conn.ReadFromDevice())
 }
 
-func (s Socket) listen() {
+func (s *Socket) listen() {
 	for {
 		if broke := <-s.conn.BrokenPipe; broke {
 			select {
@@ -54,14 +53,9 @@ func (s Socket) listen() {
 	}
 }
 
-func (s Socket) try() {
-	if s.attempts >= 3 {
-		log.Fatalln("Max attempts to connect")
-		return
-	}
+func (s *Socket) try() {
 	err := s.Run()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	s.attempts++
 }

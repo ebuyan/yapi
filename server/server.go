@@ -23,6 +23,6 @@ func (h *Http) Start() {
 	r.HandleFunc("/", h.Socket.Wright).Methods("POST")
 	r.HandleFunc("/", h.Socket.Read).Methods("GET")
 	http.Handle("/", r)
-	log.Println("Start server on " + h.Host)
+	log.Println("Start server on: " + h.Host)
 	log.Fatalln(http.ListenAndServe(h.Host, nil))
 }
