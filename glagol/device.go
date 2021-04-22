@@ -12,7 +12,7 @@ type Device struct {
 	certificate string
 	token       string
 	host        string
-	processed   bool
+	discovered  bool
 
 	State DeviceState
 
@@ -43,7 +43,7 @@ func (d *Device) GetHost() string {
 func (d *Device) SetHost(ipAddr, port string) {
 	host := url.URL{Scheme: "wss", Host: ipAddr + ":" + port, Path: "/"}
 	d.host = host.String()
-	d.processed = true
+	d.discovered = true
 }
 
 func (d *Device) GetOrigin() http.Header {
@@ -68,8 +68,8 @@ func (d *Device) GetCertificate() string {
 	return d.certificate
 }
 
-func (d *Device) IsProcessed() bool {
-	return d.processed
+func (d *Device) Discovered() bool {
+	return d.discovered
 }
 
 type DeviceState struct {

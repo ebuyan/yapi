@@ -34,7 +34,7 @@ func (m *mDNS) SetHost(device *Device) (err error) {
 	if err != nil {
 		return
 	}
-	if !device.IsProcessed() {
+	if !device.Discovered() {
 		err = errors.New("mdns: No device found")
 	}
 
