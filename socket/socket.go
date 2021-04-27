@@ -28,6 +28,10 @@ func (s *Socket) Run() (err error) {
 func (s *Socket) Wright(w http.ResponseWriter, r *http.Request) {
 	msg := Payload{}
 	json.NewDecoder(r.Body).Decode(&msg)
+
+	js, _ := json.Marshal(msg)
+	log.Println("Request: " + string(js))
+
 	err := s.conn.SendToDevice(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -25,7 +25,7 @@ func NewOAuthRequestBody() OAuthRequestBody {
 	}
 }
 
-func (body OAuthRequestBody) Get() []byte {
+func (body OAuthRequestBody) String() string {
 	str := fmt.Sprintf(
 		"grant_type=%s&client_id=%s&client_secret=%s&username=%s&password=%s",
 		body.grantType,
@@ -41,5 +41,5 @@ func (body OAuthRequestBody) Get() []byte {
 			body.captchaKey,
 		)
 	}
-	return []byte(str)
+	return str
 }

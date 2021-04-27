@@ -43,7 +43,7 @@ func (client OAuthClient) GetToken() (string, error) {
 }
 
 func (client OAuthClient) sendRequest() (response OAuthTokenResponse, err error) {
-	req, _ := http.NewRequest(http.MethodPost, client.baseUrl, bytes.NewBuffer(client.body.Get()))
+	req, _ := http.NewRequest(http.MethodPost, client.baseUrl, bytes.NewBuffer([]byte(client.body.String())))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
