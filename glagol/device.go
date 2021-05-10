@@ -93,5 +93,6 @@ type PlayerState struct {
 }
 
 type Extra struct {
-	CoverURI string `json:"coverURI"`
+	CoverURI  string `json:"coverURI"`
+	StateType string `json:"stateType"`
 }

@@ -71,6 +71,7 @@ func (c *Conversation) Run() {
 		case <-time.After(time.Second):
 			c.BrokenPipe <- true
 		}
+		return
 	case <-interrupt:
 		log.Fatalln("interrupt")
 	}
