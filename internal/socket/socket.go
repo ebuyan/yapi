@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 )
 
 type Socket struct {
@@ -16,6 +15,7 @@ func NewSocket(conn *Conversation) Socket {
 }
 
 func (s *Socket) Run() (err error) {
+	log.Println("Run socket")
 	err = s.conn.Connect()
 	if err != nil {
 		return
@@ -28,9 +28,7 @@ func (s *Socket) Run() (err error) {
 func (s *Socket) Wright(w http.ResponseWriter, r *http.Request) {
 	msg := Payload{}
 	json.NewDecoder(r.Body).Decode(&msg)
-
-	js, _ := json.Marshal(msg)
-	log.Println("Request: " + string(js))
+	json.Marshal(msg)
 
 	err := s.conn.SendToDevice(msg)
 	if err != nil {
@@ -46,20 +44,14 @@ func (s *Socket) Read(w http.ResponseWriter, r *http.Request) {
 
 func (s *Socket) listen() {
 	for {
-		if broke := <-s.conn.BrokenPipe; broke {
-			select {
-			case <-time.After(time.Second):
-				log.Println("Broken pipe")
-				s.try()
-				return
+		select {
+		case <-s.conn.BrokenPipe:
+			log.Println("Broken pipe")
+			err := s.Run()
+			if err != nil {
+				log.Fatalln(err)
 			}
+			return
 		}
-	}
-}
-
-func (s *Socket) try() {
-	err := s.Run()
-	if err != nil {
-		log.Fatalln(err)
 	}
 }

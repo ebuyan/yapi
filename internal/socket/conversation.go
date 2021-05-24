@@ -27,7 +27,7 @@ func NewConversation(device Device) *Conversation {
 		Error:      make(chan string),
 		BrokenPipe: make(chan bool),
 		writeWait:  10 * time.Second,
-		pingPeriod: 60 * time.Second,
+		pingPeriod: 300 * time.Second,
 	}
 }
 
@@ -46,7 +46,9 @@ func (c *Conversation) Connect() (err error) {
 		return
 	}
 	err = c.pingDevice()
-	log.Println("Successful connection to the station")
+	if err == nil {
+		log.Println("Successful connection to the station")
+	}
 	return
 }
 
@@ -98,13 +100,19 @@ func (c *Conversation) Close() {
 }
 
 func (c *Conversation) read() {
+	log.Println("Start read socket")
 	for {
-		_, msg, err := c.connection.ReadMessage()
-		if err != nil {
-			c.Error <- err.Error()
+		select {
+		case <-c.BrokenPipe:
 			return
+		default:
+			_, msg, err := c.connection.ReadMessage()
+			if err != nil {
+				c.Error <- "Read error: " + err.Error()
+				return
+			}
+			c.device.SetState(msg)
 		}
-		c.device.SetState(msg)
 	}
 }
 
@@ -116,6 +124,7 @@ func (c *Conversation) pingConn() {
 		case <-ticker.C:
 			if err := c.connection.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(c.writeWait)); err != nil {
 				c.Error <- "Ping error: " + err.Error()
+				return
 			}
 		case <-c.BrokenPipe:
 			return
