@@ -2,6 +2,7 @@ package socket
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 )
@@ -15,9 +16,10 @@ func NewSocket(conn *Conversation) Socket {
 }
 
 func (s *Socket) Run() (err error) {
-	log.Println("Run socket")
+	log.Println("Start socket connection")
 	err = s.conn.Connect()
 	if err != nil {
+		err = errors.New("Connect error: " + err.Error())
 		return
 	}
 	go s.conn.Run()
