@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Socket struct {
@@ -48,12 +49,15 @@ func (s *Socket) listen() {
 	for {
 		select {
 		case <-s.conn.BrokenPipe:
-			log.Println("Broken pipe")
-			err := s.Run()
-			if err != nil {
-				log.Fatalln(err)
+			select {
+			case <-time.After(time.Second):
+				log.Println("Broken pipe")
+				err := s.Run()
+				if err != nil {
+					log.Fatalln(err)
+				}
+				return
 			}
-			return
 		}
 	}
 }
