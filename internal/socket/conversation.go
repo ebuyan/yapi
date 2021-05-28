@@ -69,11 +69,8 @@ func (c *Conversation) Run() {
 				log.Fatalln(e)
 			}
 		}
-		select {
-		case <-time.After(time.Second):
-			for i := 0; i < 3; i++ {
-				c.BrokenPipe <- true
-			}
+		for i := 0; i < 3; i++ {
+			c.BrokenPipe <- true
 		}
 	case <-interrupt:
 		log.Fatalln("interrupt")

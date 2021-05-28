@@ -50,7 +50,7 @@ func (s *Socket) listen() {
 		select {
 		case <-s.conn.BrokenPipe:
 			select {
-			case <-time.After(time.Second):
+			case <-time.After(3 * time.Second):
 				log.Println("Broken pipe")
 				err := s.Run()
 				if err != nil {
