@@ -20,7 +20,7 @@ func NewHttp(s *socket.Socket) Http {
 
 func (h *Http) Start() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", h.Socket.Wright).Methods("POST")
+	r.HandleFunc("/", h.Socket.Write).Methods("POST")
 	r.HandleFunc("/", h.Socket.Read).Methods("GET")
 	http.Handle("/", r)
 	log.Println("Start server on: " + h.Host)

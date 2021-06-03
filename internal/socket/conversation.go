@@ -120,7 +120,7 @@ func (c *Conversation) pingConn() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := c.connection.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(c.writeWait)); err != nil {
+			if err := c.pingDevice(); err != nil {
 				c.Error <- "Ping error: " + err.Error()
 				return
 			}

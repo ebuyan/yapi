@@ -28,7 +28,7 @@ func (s *Socket) Run() (err error) {
 	return
 }
 
-func (s *Socket) Wright(w http.ResponseWriter, r *http.Request) {
+func (s *Socket) Write(w http.ResponseWriter, r *http.Request) {
 	msg := Payload{}
 	json.NewDecoder(r.Body).Decode(&msg)
 	json.Marshal(msg)
@@ -36,7 +36,7 @@ func (s *Socket) Wright(w http.ResponseWriter, r *http.Request) {
 	err := s.conn.SendToDevice(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		s.conn.Error <- err.Error()
+		s.conn.Error <- "Write error: " + err.Error()
 	}
 }
 
