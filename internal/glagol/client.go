@@ -66,8 +66,8 @@ func (g *GlagolClient) discoverDevices(devices []DeviceResponse) (device DeviceR
 	return
 }
 
-func (api *GlagolClient) getJwtTokenForDevice(deviceId, platform string) (token string, err error) {
-	responseBody, err := api.sendRequest("token?device_id=" + deviceId + "&platform=" + platform)
+func (g *GlagolClient) getJwtTokenForDevice(deviceId, platform string) (token string, err error) {
+	responseBody, err := g.sendRequest("token?device_id=" + deviceId + "&platform=" + platform)
 	if err != nil {
 		return
 	}
