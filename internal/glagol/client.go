@@ -8,21 +8,21 @@ import (
 	"yapi/pkg/mdns"
 )
 
-type GlagolClient struct {
+type Client struct {
 	deviceId string
 	token    string
 	baseUrl  string
 }
 
-func NewGlagolClient(deviceId, token string) GlagolClient {
-	return GlagolClient{
+func NewClient(deviceId, token string) Client {
+	return Client{
 		deviceId: deviceId,
 		token:    token,
 		baseUrl:  "https://quasar.yandex.net/glagol",
 	}
 }
 
-func (g *GlagolClient) GetDevice() (device *Device, err error) {
+func (g *Client) GetDevice() (device *Device, err error) {
 	devices, err := g.getDeviceList()
 	if err != nil {
 		return
@@ -42,7 +42,7 @@ func (g *GlagolClient) GetDevice() (device *Device, err error) {
 	return
 }
 
-func (g *GlagolClient) getDeviceList() ([]DeviceResponse, error) {
+func (g *Client) getDeviceList() ([]DeviceResponse, error) {
 	responseBody, err := g.sendRequest("device_list")
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (g *GlagolClient) getDeviceList() ([]DeviceResponse, error) {
 	return list, err
 }
 
-func (g *GlagolClient) discoverDevices(devices []DeviceResponse) (device DeviceResponse, err error) {
+func (g *Client) discoverDevices(devices []DeviceResponse) (device DeviceResponse, err error) {
 	for _, device = range devices {
 		if device.Id == g.deviceId {
 			return
@@ -66,7 +66,7 @@ func (g *GlagolClient) discoverDevices(devices []DeviceResponse) (device DeviceR
 	return
 }
 
-func (g *GlagolClient) getJwtTokenForDevice(deviceId, platform string) (token string, err error) {
+func (g *Client) getJwtTokenForDevice(deviceId, platform string) (token string, err error) {
 	responseBody, err := g.sendRequest("token?device_id=" + deviceId + "&platform=" + platform)
 	if err != nil {
 		return
@@ -77,7 +77,7 @@ func (g *GlagolClient) getJwtTokenForDevice(deviceId, platform string) (token st
 	return
 }
 
-func (g *GlagolClient) sendRequest(endPoint string) (response []byte, err error) {
+func (g *Client) sendRequest(endPoint string) (response []byte, err error) {
 	req, err := http.NewRequest(http.MethodGet, g.baseUrl+"/"+endPoint, nil)
 	req.Header.Set("Authorization", "Oauth "+g.token)
 	req.Header.Set("Content-Type", "application/json")

@@ -23,7 +23,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	client := glagol.NewGlagolClient(os.Getenv("DEVICE_ID"), oauthToken)
+	client := glagol.NewClient(os.Getenv("DEVICE_ID"), oauthToken)
 	station, err := client.GetDevice()
 	if err != nil {
 		log.Fatalln(err)
