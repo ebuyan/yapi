@@ -1,7 +1,7 @@
 <h1>API для управления Яндекс станцией</h1>
 
-`yapi` собран под ARM \
-`GOOS=linux GOARCH=arm GOARM=6 go build -o yapi cmd/yapi/main.go`
+`yapi` собран под AMD \
+go build -o yapi cmd/yapi/main.go`
 
 <h3>.env.local</h3>
 
