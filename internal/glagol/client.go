@@ -31,11 +31,13 @@ func (g *Client) GetDevice() (device *Device, err error) {
 	if err != nil {
 		return
 	}
+
 	device = NewDevice(deviceResp.Id, deviceResp.Platform, deviceResp.Glagol.Security.ServerCertificate)
 	entry, err := mdns.Discover(device.id, "_yandexio._tcp")
 	if err != nil {
 		return
 	}
+
 	device.SetHost(entry.IpAddr, entry.Port)
 	device.SetRefreshTokenHandler(g.getJwtTokenForDevice)
 	err = device.RefreshToken()
@@ -48,10 +50,10 @@ func (g *Client) getDeviceList() ([]DeviceResponse, error) {
 		return nil, err
 	}
 	response := DeviceListResponse{}
-	json.Unmarshal(responseBody, &response)
+	_ = json.Unmarshal(responseBody, &response)
 	list := response.Devices
 	if len(list) == 0 {
-		err = errors.New("No devices found at account")
+		err = errors.New("no devices found at account")
 	}
 	return list, err
 }
@@ -62,7 +64,7 @@ func (g *Client) discoverDevices(devices []DeviceResponse) (device DeviceRespons
 			return
 		}
 	}
-	err = errors.New("No station found in local network")
+	err = errors.New("no station found in local network")
 	return
 }
 
@@ -72,7 +74,7 @@ func (g *Client) getJwtTokenForDevice(deviceId, platform string) (token string, 
 		return
 	}
 	response := TokenResponse{}
-	json.Unmarshal(responseBody, &response)
+	_ = json.Unmarshal(responseBody, &response)
 	token = response.Token
 	return
 }
@@ -85,11 +87,8 @@ func (g *Client) sendRequest(endPoint string) (response []byte, err error) {
 	if err != nil {
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	response, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
 	return
 }
 

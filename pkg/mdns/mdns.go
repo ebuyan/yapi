@@ -25,29 +25,27 @@ func Discover(deviceId, service string) (entry Entry, err error) {
 				entry.IpAddr = entryCh.AddrV4.String()
 				entry.Port = strconv.Itoa(entryCh.Port)
 				entry.Discovered = true
-				log.Println("Found device on: " + entry.IpAddr)
+				log.Println("found device on: " + entry.IpAddr)
 				return
 			}
 		}
 	}(&entry)
-	err = mdns.Lookup(service, entriesCh)
-	if err != nil {
+
+	if err = mdns.Lookup(service, entriesCh); err != nil {
 		return
 	}
 	if !entry.Discovered {
 		err = errors.New("mdns: No device found")
 	}
-
 	return
 }
 
-func getDeviceId(entry *mdns.ServiceEntry) (deviceId string) {
+func getDeviceId(entry *mdns.ServiceEntry) string {
 	for _, field := range entry.InfoFields {
 		entryData := strings.Split(field, "=")
 		if len(entryData) == 2 && entryData[0] == "deviceId" {
-			deviceId = entryData[1]
-			return
+			return entryData[1]
 		}
 	}
-	return
+	return ""
 }

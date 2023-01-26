@@ -1,28 +1,36 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"os"
+	"time"
 	"yapi/internal/socket"
 
 	"github.com/gorilla/mux"
 )
 
 type Http struct {
-	Host string
-	*socket.Socket
+	host   string
+	socket *socket.Socket
 }
 
 func NewHttp(s *socket.Socket) Http {
 	return Http{os.Getenv("HTTP_HOST"), s}
 }
 
-func (h *Http) Start() {
+func (h *Http) Start() error {
 	r := mux.NewRouter()
-	r.HandleFunc("/", h.Socket.Write).Methods("POST")
-	r.HandleFunc("/", h.Socket.Read).Methods("GET")
+	r.HandleFunc("/", h.socket.Write).Methods("POST")
+	r.HandleFunc("/", h.socket.Read).Methods("GET")
 	http.Handle("/", r)
-	log.Println("Start server on: " + h.Host)
-	log.Fatalln(http.ListenAndServe(h.Host, nil))
+
+	srv := &http.Server{
+		Addr:         h.host,
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      r,
+	}
+
+	return srv.ListenAndServe()
 }

@@ -12,14 +12,14 @@ func NewStore() Store {
 }
 
 func (s Store) SetToken(token string) {
-	s.Update(func(tx *buntdb.Tx) (err error) {
-		tx.Set("oauth_token", token, nil)
+	_ = s.Update(func(tx *buntdb.Tx) (err error) {
+		_, _, _ = tx.Set("oauth_token", token, nil)
 		return
 	})
 }
 
 func (s Store) GetToken() (ok bool, token string) {
-	s.View(func(tx *buntdb.Tx) (err error) {
+	_ = s.View(func(tx *buntdb.Tx) (err error) {
 		token, err = tx.Get("oauth_token")
 		ok = err == nil
 		return

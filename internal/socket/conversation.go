@@ -1,7 +1,9 @@
 package socket
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"os"
 	"os/signal"
@@ -12,69 +14,66 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	writeWait = 10 * time.Second
+	pongWait  = 60 * time.Second
+	pingWait  = (pongWait * 9) / 10
+)
+
 type Conversation struct {
 	device     Device
 	connection *websocket.Conn
 	Error      chan string
-	BrokenPipe chan bool
-	writeWait  time.Duration
-	pingPeriod time.Duration
 }
 
 func NewConversation(device Device) *Conversation {
 	return &Conversation{
-		device:     device,
-		Error:      make(chan string),
-		BrokenPipe: make(chan bool),
-		writeWait:  10 * time.Second,
-		pingPeriod: 300 * time.Second,
+		device: device,
+		Error:  make(chan string),
 	}
 }
 
-func (c *Conversation) Connect() (err error) {
+func (c *Conversation) Connect(ctx context.Context) (err error) {
 	dialer := websocket.DefaultDialer
 	certs, err := GetCerts(c.device.GetCertificate())
 	if err != nil {
 		return
 	}
+
 	dialer.TLSClientConfig = &tls.Config{
 		RootCAs:            certs,
 		InsecureSkipVerify: true,
 	}
-	c.connection, _, err = dialer.Dial(c.device.GetHost(), c.device.GetOrigin())
-	if err != nil {
+
+	if c.connection, _, err = dialer.DialContext(ctx, c.device.GetHost(), c.device.GetOrigin()); err != nil {
 		return
 	}
-	err = c.pingDevice()
-	if err == nil {
-		log.Println("Successful connection to the station")
+	if err = c.pingDevice(); err == nil {
+		log.Println("successful connection to the station")
 	}
 	return
 }
 
-func (c *Conversation) Run() {
+func (c *Conversation) Run(ctx context.Context) error {
 	defer c.Close()
-	go c.read()
-	go c.pingConn()
+	go c.read(ctx)
+	go c.pingConn(ctx)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	select {
-	case err := <-c.Error:
-		log.Println(err)
-		if strings.Contains(err, "Invalid token") {
-			e := c.device.RefreshToken()
-			if e != nil {
-				log.Fatalln(e)
+	case e := <-c.Error:
+		log.Println(e)
+		if strings.Contains(e, "Invalid token") {
+			if err := c.device.RefreshToken(); err != nil {
+				return err
 			}
 		}
-		for i := 0; i < 3; i++ {
-			c.BrokenPipe <- true
-		}
 	case <-interrupt:
-		log.Fatalln("interrupt")
+		return errors.New("interrupt")
 	}
+	return nil
 }
 
 func (c *Conversation) ReadFromDevice() []byte {
@@ -88,25 +87,27 @@ func (c *Conversation) SendToDevice(msg Payload) error {
 		SentTime:          time.Now().UnixNano(),
 		Payload:           msg,
 	}
-	c.connection.SetWriteDeadline(time.Now().Add(c.writeWait))
+	_ = c.connection.SetWriteDeadline(time.Now().Add(writeWait))
 	return c.connection.WriteJSON(message)
 }
 
 func (c *Conversation) Close() {
-	c.connection.Close()
-	log.Println("Connection closed")
+	_ = c.connection.Close()
+	log.Println("connection closed")
 }
 
-func (c *Conversation) read() {
-	log.Println("Start read socket")
+func (c *Conversation) read(ctx context.Context) {
+	log.Println("start read socket")
+	c.connection.SetReadDeadline(time.Now().Add(pongWait))
+
 	for {
 		select {
-		case <-c.BrokenPipe:
+		case <-ctx.Done():
 			return
 		default:
 			_, msg, err := c.connection.ReadMessage()
 			if err != nil {
-				c.Error <- "Read error: " + err.Error()
+				c.Error <- "read error: " + err.Error()
 				return
 			}
 			c.device.SetState(msg)
@@ -114,17 +115,20 @@ func (c *Conversation) read() {
 	}
 }
 
-func (c *Conversation) pingConn() {
-	ticker := time.NewTicker(c.pingPeriod)
+func (c *Conversation) pingConn(ctx context.Context) {
+	ticker := time.NewTicker(pingWait)
 	defer ticker.Stop()
+
+	c.connection.SetPongHandler(func(string) error { c.connection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
 	for {
 		select {
 		case <-ticker.C:
 			if err := c.pingDevice(); err != nil {
-				c.Error <- "Ping error: " + err.Error()
+				c.Error <- "ping error: " + err.Error()
 				return
 			}
-		case <-c.BrokenPipe:
+		case <-ctx.Done():
 			return
 		}
 	}

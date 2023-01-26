@@ -12,13 +12,11 @@ import (
 )
 
 func main() {
-	err := godotenv.Load(".env.local")
-	if err != nil {
-		log.Fatalln("No .env.local file")
+	if err := godotenv.Load(".env.local"); err != nil {
+		log.Fatalln("no .env.local file")
 	}
 
-	oauthClient := yandex.NewOAuthClient()
-	oauthToken, err := oauthClient.GetToken()
+	oauthToken, err := yandex.NewOAuthClient().GetToken()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -30,12 +28,14 @@ func main() {
 	}
 
 	conversation := socket.NewConversation(station)
-	socket := socket.NewSocket(conversation)
-	err = socket.Run()
-	if err != nil {
+	soc := socket.NewSocket(conversation)
+
+	if err = soc.Run(); err != nil {
 		log.Fatalln(err)
 	}
 
-	server := server.NewHttp(&socket)
-	server.Start()
+	srv := server.NewHttp(soc)
+	if err = srv.Start(); err != nil {
+		log.Fatalln(err)
+	}
 }

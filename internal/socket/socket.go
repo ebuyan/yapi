@@ -1,63 +1,52 @@
 package socket
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
-	"time"
 )
 
 type Socket struct {
 	conn *Conversation
 }
 
-func NewSocket(conn *Conversation) Socket {
-	return Socket{conn}
+func NewSocket(conn *Conversation) *Socket {
+	return &Socket{conn}
 }
 
 func (s *Socket) Run() (err error) {
 	log.Println("Start socket connection")
-	err = s.conn.Connect()
-	if err != nil {
-		err = errors.New("Connect error: " + err.Error())
-		return
+
+	ctx := context.Background()
+	if err = s.conn.Connect(ctx); err != nil {
+		return errors.New("connect error: " + err.Error())
 	}
-	go s.conn.Run()
-	go s.listen()
+
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		if err = s.conn.Run(ctx); err != nil {
+			cancel()
+			log.Fatalln(err)
+		}
+	}()
 	return
 }
 
 func (s *Socket) Write(w http.ResponseWriter, r *http.Request) {
 	msg := Payload{}
-	json.NewDecoder(r.Body).Decode(&msg)
-	json.Marshal(msg)
+	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+		return
+	}
 
-	err := s.conn.SendToDevice(msg)
-	if err != nil {
+	if err := s.conn.SendToDevice(msg); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		s.conn.Error <- "Write error: " + err.Error()
 	}
 }
 
-func (s *Socket) Read(w http.ResponseWriter, r *http.Request) {
+func (s *Socket) Read(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(s.conn.ReadFromDevice())
-}
-
-func (s *Socket) listen() {
-	for {
-		select {
-		case <-s.conn.BrokenPipe:
-			select {
-			case <-time.After(3 * time.Second):
-				log.Println("Broken pipe")
-				err := s.Run()
-				if err != nil {
-					log.Fatalln(err)
-				}
-				return
-			}
-		}
-	}
+	_, _ = w.Write(s.conn.ReadFromDevice())
 }

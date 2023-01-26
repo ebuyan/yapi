@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 type Device struct {
@@ -13,6 +14,7 @@ type Device struct {
 	token       string
 	host        string
 	discovered  bool
+	mu          sync.RWMutex
 
 	State DeviceState
 
@@ -33,7 +35,9 @@ func (d *Device) GetState() []byte {
 }
 
 func (d *Device) SetState(state []byte) {
-	json.Unmarshal(state, &d.State)
+	d.mu.Lock()
+	_ = json.Unmarshal(state, &d.State)
+	d.mu.Unlock()
 }
 
 func (d *Device) GetHost() string {

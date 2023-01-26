@@ -25,20 +25,20 @@ func NewOAuthRequestBody() OAuthRequestBody {
 	}
 }
 
-func (body OAuthRequestBody) String() string {
+func (b OAuthRequestBody) String() string {
 	str := fmt.Sprintf(
 		"grant_type=%s&client_id=%s&client_secret=%s&username=%s&password=%s",
-		body.grantType,
-		body.clientId,
-		body.clientSecret,
-		body.username,
-		body.password,
+		b.grantType,
+		b.clientId,
+		b.clientSecret,
+		b.username,
+		b.password,
 	)
-	if len(body.captchaKey) > 0 {
+	if len(b.captchaKey) > 0 {
 		str += fmt.Sprintf(
 			"&x_captcha_answer=%s&x_captcha_key=%s",
-			body.captchaAnswer,
-			body.captchaKey,
+			b.captchaAnswer,
+			b.captchaKey,
 		)
 	}
 	return str
