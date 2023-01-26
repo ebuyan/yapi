@@ -35,9 +35,9 @@ func (d *Device) GetState() []byte {
 }
 
 func (d *Device) SetState(state []byte) {
-	d.mu.Lock()
+	d.mu.RLock()
 	_ = json.Unmarshal(state, &d.State)
-	d.mu.Unlock()
+	d.mu.RUnlock()
 }
 
 func (d *Device) GetHost() string {
