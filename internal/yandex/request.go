@@ -6,13 +6,11 @@ import (
 )
 
 type OAuthRequestBody struct {
-	clientId      string
-	clientSecret  string
-	grantType     string
-	username      string
-	password      string
-	captchaAnswer string
-	captchaKey    string
+	clientId     string
+	clientSecret string
+	grantType    string
+	username     string
+	password     string
 }
 
 func NewOAuthRequestBody() OAuthRequestBody {
@@ -26,7 +24,7 @@ func NewOAuthRequestBody() OAuthRequestBody {
 }
 
 func (b OAuthRequestBody) String() string {
-	str := fmt.Sprintf(
+	return fmt.Sprintf(
 		"grant_type=%s&client_id=%s&client_secret=%s&username=%s&password=%s",
 		b.grantType,
 		b.clientId,
@@ -34,12 +32,4 @@ func (b OAuthRequestBody) String() string {
 		b.username,
 		b.password,
 	)
-	if len(b.captchaKey) > 0 {
-		str += fmt.Sprintf(
-			"&x_captcha_answer=%s&x_captcha_key=%s",
-			b.captchaAnswer,
-			b.captchaKey,
-		)
-	}
-	return str
 }

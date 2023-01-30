@@ -1,14 +1,12 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"yapi/internal/glagol"
 	"yapi/internal/server"
 	"yapi/internal/socket"
-	"yapi/internal/yandex"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -16,11 +14,7 @@ func main() {
 		log.Fatalln("no .env.local file")
 	}
 
-	oauthToken, err := yandex.NewOAuthClient().GetToken()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
+	oauthToken := os.Getenv("OAUTH_TOKEN")
 	client := glagol.NewClient(os.Getenv("DEVICE_ID"), oauthToken)
 	station, err := client.GetDevice()
 	if err != nil {

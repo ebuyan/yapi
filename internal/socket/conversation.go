@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,24 +56,20 @@ func (c *Conversation) Connect(ctx context.Context) (err error) {
 
 func (c *Conversation) Run(ctx context.Context) error {
 	defer c.Close()
+
 	go c.read(ctx)
 	go c.pingConn(ctx)
+	go c.refreshToken(ctx)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	select {
 	case e := <-c.Error:
-		log.Println(e)
-		if strings.Contains(e, "Invalid token") {
-			if err := c.device.RefreshToken(); err != nil {
-				return err
-			}
-		}
+		return errors.New(e)
 	case <-interrupt:
 		return errors.New("interrupt")
 	}
-	return nil
 }
 
 func (c *Conversation) ReadFromDevice() []byte {
@@ -98,7 +94,6 @@ func (c *Conversation) Close() {
 
 func (c *Conversation) read(ctx context.Context) {
 	log.Println("start read socket")
-	c.connection.SetReadDeadline(time.Now().Add(pongWait))
 
 	for {
 		select {
@@ -107,7 +102,7 @@ func (c *Conversation) read(ctx context.Context) {
 		default:
 			_, msg, err := c.connection.ReadMessage()
 			if err != nil {
-				c.Error <- "read error: " + err.Error()
+				c.Error <- fmt.Sprintf("read err: %s", err)
 				return
 			}
 			c.device.SetState(msg)
@@ -119,15 +114,34 @@ func (c *Conversation) pingConn(ctx context.Context) {
 	ticker := time.NewTicker(pingWait)
 	defer ticker.Stop()
 
-	c.connection.SetPongHandler(func(string) error { c.connection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.connection.SetPongHandler(func(string) error {
+		return c.connection.SetReadDeadline(time.Now().Add(pongWait))
+	})
 
 	for {
 		select {
 		case <-ticker.C:
 			if err := c.pingDevice(); err != nil {
-				c.Error <- "ping error: " + err.Error()
+				c.Error <- fmt.Sprintf("ping err: %s", err)
 				return
 			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (c *Conversation) refreshToken(ctx context.Context) {
+	ticker := time.NewTicker(time.Hour * 1)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := c.device.RefreshToken(); err != nil {
+				c.Error <- fmt.Sprintf("refresh token: %s", err)
+			}
+			log.Println("successful refresh token")
 		case <-ctx.Done():
 			return
 		}

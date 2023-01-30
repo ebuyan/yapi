@@ -1,15 +1,12 @@
 package yandex
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"strings"
 	"yapi/pkg/store"
 )
 
@@ -34,9 +31,6 @@ func (c OAuthClient) GetToken() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if len(resp.CaptchaKey) > 0 {
-			return c.inputCaptcha(resp.CaptchaUrl, resp.CaptchaUrl)
-		}
 		token = resp.Token
 		c.store.SetToken(token)
 	}
@@ -57,6 +51,7 @@ func (c OAuthClient) sendRequest() (response OAuthTokenResponse, err error) {
 		return
 	}
 	response = OAuthTokenResponse{}
+	fmt.Println(string(body))
 	if err = json.Unmarshal(body, &response); err != nil {
 		return
 	}
@@ -66,24 +61,7 @@ func (c OAuthClient) sendRequest() (response OAuthTokenResponse, err error) {
 	return
 }
 
-func (c OAuthClient) inputCaptcha(captchaUrl string, captchaKey string) (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Please follow the link and enter the captcha value. " + captchaUrl)
-	for {
-		fmt.Print("-> ")
-		text, _ := reader.ReadString('\n')
-		text = strings.Replace(text, "\n", "", -1)
-		if len(text) > 0 {
-			c.body.captchaAnswer = text
-			c.body.captchaKey = captchaKey
-			return c.GetToken()
-		}
-	}
-}
-
 type OAuthTokenResponse struct {
-	Token      string `json:"access_token"`
-	CaptchaKey string `json:"x_captcha_key"`
-	CaptchaUrl string `json:"x_captcha_url"`
-	Error      string `json:"error_description"`
+	Token string `json:"access_token"`
+	Error string `json:"error"`
 }

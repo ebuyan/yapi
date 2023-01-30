@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Socket struct {
@@ -17,7 +18,7 @@ func NewSocket(conn *Conversation) *Socket {
 }
 
 func (s *Socket) Run() (err error) {
-	log.Println("Start socket connection")
+	log.Println("start socket connection")
 
 	ctx := context.Background()
 	if err = s.conn.Connect(ctx); err != nil {
@@ -28,6 +29,7 @@ func (s *Socket) Run() (err error) {
 	go func() {
 		if err = s.conn.Run(ctx); err != nil {
 			cancel()
+			time.Sleep(time.Second * 3)
 			log.Fatalln(err)
 		}
 	}()
@@ -42,7 +44,7 @@ func (s *Socket) Write(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.conn.SendToDevice(msg); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		s.conn.Error <- "Write error: " + err.Error()
+		s.conn.Error <- "write error: " + err.Error()
 	}
 }
 
