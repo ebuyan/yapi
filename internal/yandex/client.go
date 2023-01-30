@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"yapi/pkg/store"
@@ -51,7 +50,6 @@ func (c OAuthClient) sendRequest() (response OAuthTokenResponse, err error) {
 		return
 	}
 	response = OAuthTokenResponse{}
-	fmt.Println(string(body))
 	if err = json.Unmarshal(body, &response); err != nil {
 		return
 	}
