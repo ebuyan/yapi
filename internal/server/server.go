@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"os"
 	"time"
 	"yapi/internal/socket"
 
@@ -10,12 +9,12 @@ import (
 )
 
 type Http struct {
-	host   string
+	addr   string
 	socket *socket.Socket
 }
 
-func NewHttp(s *socket.Socket) Http {
-	return Http{os.Getenv("HTTP_HOST"), s}
+func NewHttp(s *socket.Socket, addr string) Http {
+	return Http{addr, s}
 }
 
 func (h *Http) Start() error {
@@ -25,7 +24,7 @@ func (h *Http) Start() error {
 	http.Handle("/", r)
 
 	srv := &http.Server{
-		Addr:         h.host,
+		Addr:         h.addr,
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
