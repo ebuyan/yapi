@@ -1,12 +1,11 @@
 <h1>API для управления Яндекс станцией</h1>
 
 `yapi` собран под AMD \
-go build -o yapi cmd/yapi/main.go`
+go build -o yapi cmd/yapi.go`
 
 <h3>.env.local</h3>
 
-LOGIN - логин от Яндекс аккаунта \
-PASSWORD - пароль от Яндекс аккаунта \
+OAUTH_TOKEN - токен Яндекса \
 DEVICE_ID - приложение яндекс -> устройства -> Станция -> идентификатор устройства \
 HTTP_HOST - хост http сервера (по-умолчанию `localhost:8001`)
 

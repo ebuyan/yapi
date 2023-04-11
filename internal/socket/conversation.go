@@ -141,7 +141,6 @@ func (c *Conversation) refreshToken(ctx context.Context) {
 			if err := c.device.RefreshToken(); err != nil {
 				c.Error <- fmt.Sprintf("refresh token: %s", err)
 			}
-			log.Println("successful refresh token")
 		case <-ctx.Done():
 			return
 		}

@@ -30,14 +30,16 @@ func (d *Device) GetId() string {
 }
 
 func (d *Device) GetState() []byte {
+	d.mu.RLock()
 	js, _ := json.Marshal(d.State)
+	d.mu.RUnlock()
 	return js
 }
 
 func (d *Device) SetState(state []byte) {
-	d.mu.RLock()
+	d.mu.Lock()
 	_ = json.Unmarshal(state, &d.State)
-	d.mu.RUnlock()
+	d.mu.Unlock()
 }
 
 func (d *Device) GetHost() string {
