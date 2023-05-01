@@ -1,8 +1,8 @@
 package glagol
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
 	"net/url"
 	"sync"
 )
@@ -13,12 +13,11 @@ type Device struct {
 	certificate string
 	token       string
 	host        string
-	discovered  bool
-	mu          sync.RWMutex
 
-	State DeviceState
+	mu    sync.RWMutex
+	state DeviceState
 
-	refreshTokenHandler func(deviceId, platform string) (string, error)
+	refreshTokenHandler func(ctx context.Context, deviceId, platform string) (string, error)
 }
 
 func NewDevice(deviceId, platform, certificate string) *Device {
@@ -31,14 +30,14 @@ func (d *Device) GetId() string {
 
 func (d *Device) GetState() []byte {
 	d.mu.RLock()
-	js, _ := json.Marshal(d.State)
+	js, _ := json.Marshal(d.state)
 	d.mu.RUnlock()
 	return js
 }
 
 func (d *Device) SetState(state []byte) {
 	d.mu.Lock()
-	_ = json.Unmarshal(state, &d.State)
+	_ = json.Unmarshal(state, &d.state)
 	d.mu.Unlock()
 }
 
@@ -49,21 +48,15 @@ func (d *Device) GetHost() string {
 func (d *Device) SetHost(ipAddr, port string) {
 	host := url.URL{Scheme: "wss", Host: ipAddr + ":" + port, Path: "/"}
 	d.host = host.String()
-	d.discovered = true
 }
 
-func (d *Device) GetOrigin() http.Header {
-	return http.Header{"Origin": {"http://yandex.ru/"}}
-}
-
-func (d *Device) SetRefreshTokenHandler(handler func(deviceId, platform string) (string, error)) {
+func (d *Device) SetRefreshTokenHandler(handler func(ctx context.Context, deviceId, platform string) (string, error)) {
 	d.refreshTokenHandler = handler
 }
 
-func (d *Device) RefreshToken() (err error) {
-	token, err := d.refreshTokenHandler(d.id, d.platform)
-	d.token = token
-	return
+func (d *Device) RefreshToken(ctx context.Context) (err error) {
+	d.token, err = d.refreshTokenHandler(ctx, d.id, d.platform)
+	return err
 }
 
 func (d *Device) GetToken() string {
@@ -74,31 +67,21 @@ func (d *Device) GetCertificate() string {
 	return d.certificate
 }
 
-func (d *Device) Discovered() bool {
-	return d.discovered
-}
-
 type DeviceState struct {
-	State State `json:"state"`
-}
-
-type State struct {
-	PlayerState PlayerState `json:"playerState"`
-	Playing     bool        `json:"playing"`
-	Volume      float64     `json:"volume"`
-}
-
-type PlayerState struct {
-	Duration float64 `json:"duration"`
-	Extra    Extra   `json:"extra"`
-	HasPause bool    `json:"hasPause"`
-	HasPlay  bool    `json:"hasPlay"`
-	Progress float64 `json:"progress"`
-	Subtitle string  `json:"subtitle"`
-	Title    string  `json:"title"`
-}
-
-type Extra struct {
-	CoverURI  string `json:"coverURI"`
-	StateType string `json:"stateType"`
+	State struct {
+		PlayerState struct {
+			Duration float64 `json:"duration"`
+			HasPause bool    `json:"hasPause"`
+			HasPlay  bool    `json:"hasPlay"`
+			Progress float64 `json:"progress"`
+			Subtitle string  `json:"subtitle"`
+			Title    string  `json:"title"`
+			Extra    struct {
+				CoverURI  string `json:"coverURI"`
+				StateType string `json:"stateType"`
+			} `json:"extra"`
+		} `json:"playerState"`
+		Playing bool    `json:"playing"`
+		Volume  float64 `json:"volume"`
+	} `json:"state"`
 }
