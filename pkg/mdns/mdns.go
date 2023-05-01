@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/mdns"
 )
 
+const YandexServicePrefix = "_yandexio._tcp"
+
 type Entry struct {
 	Discovered bool
 	IpAddr     string

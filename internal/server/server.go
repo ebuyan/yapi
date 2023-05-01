@@ -10,10 +10,10 @@ import (
 
 type Http struct {
 	addr   string
-	socket *socket.Socket
+	socket socket.Socket
 }
 
-func NewHttp(s *socket.Socket, addr string) Http {
+func NewHttp(s socket.Socket, addr string) Http {
 	return Http{addr, s}
 }
 

@@ -1,61 +1,75 @@
 package glagol
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"yapi/pkg/mdns"
+	"time"
+)
+
+const (
+	defaultUrl       = "https://quasar.yandex.net/glagol"
+	deviceListAction = "device_list"
+	tokenAction      = "token"
 )
 
 type Client struct {
 	deviceId string
 	token    string
 	baseUrl  string
+	client   *http.Client
 }
 
-func NewClient(deviceId, token string) Client {
+func NewClient(baseUrl, deviceId, token string) Client {
+	if baseUrl == "" {
+		baseUrl = defaultUrl
+	}
 	return Client{
 		deviceId: deviceId,
 		token:    token,
-		baseUrl:  "https://quasar.yandex.net/glagol",
+		baseUrl:  baseUrl,
+		client: &http.Client{
+			Timeout: time.Second * 10,
+		},
 	}
 }
 
-func (g *Client) GetDevice() (device *Device, err error) {
-	devices, err := g.getDeviceList()
+func (g *Client) GetDevice(ctx context.Context, ipAddr, port string) (device *Device, err error) {
+	devices, err := g.getDeviceList(ctx)
 	if err != nil {
 		return
 	}
+
 	deviceResp, err := g.discoverDevices(devices)
 	if err != nil {
 		return
 	}
 
 	device = NewDevice(deviceResp.Id, deviceResp.Platform, deviceResp.Glagol.Security.ServerCertificate)
-	entry, err := mdns.Discover(device.id, "_yandexio._tcp")
-	if err != nil {
-		return
-	}
-
-	device.SetHost(entry.IpAddr, entry.Port)
+	device.SetHost(ipAddr, port)
 	device.SetRefreshTokenHandler(g.getJwtTokenForDevice)
-	err = device.RefreshToken()
-	return
+	if err = device.RefreshToken(ctx); err != nil {
+		return nil, err
+	}
+	return device, nil
 }
 
-func (g *Client) getDeviceList() ([]DeviceResponse, error) {
-	responseBody, err := g.sendRequest("device_list")
+func (g *Client) getDeviceList(ctx context.Context) ([]DeviceResponse, error) {
+	responseBody, err := g.sendRequest(ctx, deviceListAction)
 	if err != nil {
 		return nil, err
 	}
-	response := DeviceListResponse{}
+
+	var response DeviceListResponse
 	_ = json.Unmarshal(responseBody, &response)
 	list := response.Devices
 	if len(list) == 0 {
-		err = errors.New("no devices found at account")
+		return nil, errors.New("no devices found at account")
 	}
-	return list, err
+	return list, nil
 }
 
 func (g *Client) discoverDevices(devices []DeviceResponse) (device DeviceResponse, err error) {
@@ -64,29 +78,33 @@ func (g *Client) discoverDevices(devices []DeviceResponse) (device DeviceRespons
 			return
 		}
 	}
-	err = errors.New("no station found in local network")
-	return
+	return device, errors.New("no station found in local network")
 }
 
-func (g *Client) getJwtTokenForDevice(deviceId, platform string) (token string, err error) {
-	responseBody, err := g.sendRequest("token?device_id=" + deviceId + "&platform=" + platform)
+func (g *Client) getJwtTokenForDevice(ctx context.Context, deviceId, platform string) (token string, err error) {
+	responseBody, err := g.sendRequest(ctx, fmt.Sprintf("%s?device_id=%s&platform=%s", tokenAction, deviceId, platform))
 	if err != nil {
 		return
 	}
 	response := TokenResponse{}
 	_ = json.Unmarshal(responseBody, &response)
-	token = response.Token
-	return
+	return response.Token, nil
 }
 
-func (g *Client) sendRequest(endPoint string) (response []byte, err error) {
-	req, err := http.NewRequest(http.MethodGet, g.baseUrl+"/"+endPoint, nil)
+func (g *Client) sendRequest(ctx context.Context, endPoint string) (response []byte, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.baseUrl+"/"+endPoint, http.NoBody)
 	req.Header.Set("Authorization", "Oauth "+g.token)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+
+	resp, err := g.client.Do(req)
 	if err != nil {
 		return
 	}
+
+	if resp.StatusCode > http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("bad response %d", resp.StatusCode))
+	}
+
 	defer func() { _ = resp.Body.Close() }()
 	response, err = ioutil.ReadAll(resp.Body)
 	return
@@ -97,18 +115,14 @@ type DeviceListResponse struct {
 }
 
 type DeviceResponse struct {
-	Id       string       `json:"id"`
-	Platform string       `json:"platform"`
-	Glagol   DeviceGlagol `json:"glagol"`
-}
-
-type DeviceGlagol struct {
-	Security DeviceGlagolSecurity `json:"security"`
-}
-
-type DeviceGlagolSecurity struct {
-	ServerCertificate string `json:"server_certificate"`
-	ServerPrivateKey  string `json:"server_private_key"`
+	Id       string `json:"id"`
+	Platform string `json:"platform"`
+	Glagol   struct {
+		Security struct {
+			ServerCertificate string `json:"server_certificate"`
+			ServerPrivateKey  string `json:"server_private_key"`
+		} `json:"security"`
+	} `json:"glagol"`
 }
 
 type TokenResponse struct {
