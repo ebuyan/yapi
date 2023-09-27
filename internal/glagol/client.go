@@ -93,7 +93,7 @@ func (g *Client) getJwtTokenForDevice(ctx context.Context, deviceId, platform st
 
 func (g *Client) sendRequest(ctx context.Context, endPoint string) (response []byte, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.baseUrl+"/"+endPoint, http.NoBody)
-	req.Header.Set("Authorization", "Oauth "+g.token)
+	req.Header.Set("Authorization", "OAuth "+g.token)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := g.client.Do(req)
